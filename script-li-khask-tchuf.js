@@ -3047,55 +3047,83 @@ async function joinRoomManually() {
       if (parseInt(roomIdInput) > parseInt(roomCounter)) {
         console.log(`⚠️ Room ${roomIdInput} is higher than counter ${roomCounter} - checking if recently created...`);
         
-        // Check recent RoomCreated events for this specific room
+        // First try: Direct room check (most reliable)
         try {
-          const currentBlock = await web3.eth.getBlockNumber();
-          const fromBlock = Math.max(Number(currentBlock) - 50, 0); // Check last 50 blocks
+          console.log(`🔍 Attempting direct room check for room ${roomIdInput}...`);
+          const roomData = await cashPongContract.methods.getRoom(roomIdInput).call();
           
-          console.log(`🔍 Checking RoomCreated events from block ${fromBlock} to ${currentBlock}...`);
-          
-          const roomEvents = await cashPongContract.getPastEvents('RoomCreated', {
-            filter: { roomId: roomIdInput },
-            fromBlock: fromBlock,
-            toBlock: 'latest'
-          });
-          
-          if (roomEvents.length > 0) {
-            const event = roomEvents[0];
-            console.log(`✅ Found RoomCreated event for Room ${roomIdInput}:`, event.returnValues);
-            console.log(`🔗 Transaction: ${event.transactionHash}`);
-            console.log(`📦 Block: ${event.blockNumber}`);
-            
-            // Room exists in events, continue with join process
-            alert(`✅ Room ${roomIdInput} found in recent blockchain events! Transaction: ${event.transactionHash.substring(0, 10)}...\n\nContinuing with join process...`);
+          // Check if room exists (playerA should not be zero address)
+          if (roomData.playerA && roomData.playerA !== '0x0000000000000000000000000000000000000000') {
+            console.log(`✅ Room ${roomIdInput} exists! PlayerA: ${roomData.playerA}, PlayerB: ${roomData.playerB}`);
+            // Room exists, continue with join logic
           } else {
-            console.log(`❌ No RoomCreated events found for Room ${roomIdInput} in recent blocks`);
-            
-            // Check if user has a previous room in localStorage
-            const storedRoomId = localStorage.getItem("currentRoomId");
-            let suggestion = "";
-            if (storedRoomId && storedRoomId !== roomIdInput) {
-              suggestion = `\n\n💡 Suggestion: You have Room ${storedRoomId} stored from a previous session. Try that room instead?`;
-            }
-            
-            alert(`❌ Room ${roomIdInput} not found in recent blockchain events.\n\nThe blockchain shows highest room is ${roomCounter}.\n\nIf you just created this room, wait 1-2 minutes for blockchain sync and try again.${suggestion}`);
-            
-            // Auto-suggest the stored room if available
-            if (storedRoomId && storedRoomId !== roomIdInput) {
-              const tryStored = confirm(`Would you like to try joining your previous room (${storedRoomId}) instead?`);
-              if (tryStored) {
-                document.getElementById("roomIdToJoin").value = storedRoomId;
-                console.log(`🔄 Auto-filled Room ${storedRoomId} from localStorage`);
-                return;
-              }
-            }
-            
+            console.log(`❌ Room ${roomIdInput} does not exist or is empty`);
+            alert(`❌ Room ${roomIdInput} not found. Current highest room is ${roomCounter}.`);
             return;
           }
-        } catch (eventError) {
-          console.error("❌ Error checking RoomCreated events:", eventError);
-          alert(`⚠️ Can't verify Room ${roomIdInput} exists yet. If you just created it, wait 1-2 minutes for blockchain confirmation and try again.`);
-          return;
+        } catch (directCheckError) {
+          console.log(`⚠️ Direct room check failed: ${directCheckError.message}`);
+          console.log(`🔄 Trying event check as fallback...`);
+          
+          // Second try: Check recent events (smaller range to avoid RPC errors)
+          try {
+            const currentBlock = await web3.eth.getBlockNumber();
+            const fromBlock = Math.max(Number(currentBlock) - 20, 0); // Reduced from 50 to 20 blocks
+            
+            console.log(`🔍 Checking RoomCreated events from block ${fromBlock} to ${currentBlock}...`);
+            
+            const roomEvents = await cashPongContract.getPastEvents('RoomCreated', {
+              filter: { roomId: roomIdInput },
+              fromBlock: fromBlock,
+              toBlock: 'latest'
+            });
+            
+            if (roomEvents.length > 0) {
+              const event = roomEvents[0];
+              console.log(`✅ Found RoomCreated event for Room ${roomIdInput}:`, event.returnValues);
+              console.log(`🔗 Transaction: ${event.transactionHash}`);
+              console.log(`📦 Block: ${event.blockNumber}`);
+              
+              // Room exists in events, continue with join process
+              alert(`✅ Room ${roomIdInput} found in recent blockchain events! Transaction: ${event.transactionHash.substring(0, 10)}...\n\nContinuing with join process...`);
+            } else {
+              console.log(`❌ No RoomCreated events found for Room ${roomIdInput} in recent blocks`);
+              
+              // Check if user has a previous room in localStorage
+              const storedRoomId = localStorage.getItem("currentRoomId");
+              let suggestion = "";
+              if (storedRoomId && storedRoomId !== roomIdInput) {
+                suggestion = `\n\n💡 Suggestion: You have Room ${storedRoomId} stored from a previous session. Try that room instead?`;
+              }
+              
+              alert(`❌ Room ${roomIdInput} not found.\n\nThe blockchain shows highest room is ${roomCounter}.\n\nIf you just created this room, wait 1-2 minutes for blockchain sync and try again.${suggestion}`);
+              
+              // Auto-suggest the stored room if available
+              if (storedRoomId && storedRoomId !== roomIdInput) {
+                const tryStored = confirm(`Would you like to try joining your previous room (${storedRoomId}) instead?`);
+                if (tryStored) {
+                  document.getElementById("roomIdToJoin").value = storedRoomId;
+                  console.log(`🔄 Auto-filled Room ${storedRoomId} from localStorage`);
+                  return;
+                }
+              }
+              
+              return;
+            }
+          } catch (eventError) {
+            console.error("❌ Error checking RoomCreated events:", eventError);
+            
+            // Third try: Ask user if they want to proceed anyway
+            const proceedAnyway = confirm(`⚠️ Cannot verify Room ${roomIdInput} exists due to RPC issues.\n\nThis could mean:\n1. The room doesn't exist\n2. Blockchain is slow to sync\n3. RPC node is overloaded\n\nDo you want to try joining anyway?`);
+            
+            if (!proceedAnyway) {
+              console.log(`❌ User chose not to proceed with Room ${roomIdInput}`);
+              return;
+            } else {
+              console.log(`⚠️ User chose to proceed despite verification failure`);
+              alert(`⚠️ Proceeding with Room ${roomIdInput} join attempt.\n\nIf the room doesn't exist, you'll get an error from the smart contract.`);
+            }
+          }
         }
       }
     } catch (counterError) {
