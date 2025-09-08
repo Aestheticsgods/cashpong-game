@@ -1344,6 +1344,38 @@ app.get("/solo-game", (req, res) => {
   res.sendFile(path.join(__dirname, "solo-game.html"));
 });
 
+// API endpoint to get room information from server (avoiding blockchain RPC issues)
+app.get("/api/room/:roomId", (req, res) => {
+  const roomId = req.params.roomId;
+  console.log(`🔍 [API] Room info requested for room ${roomId}`);
+  
+  // Check if room exists in activeRooms
+  if (activeRooms[roomId]) {
+    const room = activeRooms[roomId];
+    console.log(`✅ [API] Room ${roomId} found in server memory`);
+    
+    res.json({
+      success: true,
+      room: {
+        roomId: roomId,
+        playerA: room.playerA,
+        playerB: room.playerB,
+        betAmount: room.betAmount,
+        playerAJoined: room.playerAJoined || false,
+        playerBJoined: room.playerBJoined || false,
+        isActive: room.isActive || false,
+        gameStarted: room.gameStarted || false
+      }
+    });
+  } else {
+    console.log(`❌ [API] Room ${roomId} not found in server memory`);
+    res.status(404).json({
+      success: false,
+      error: `Room ${roomId} not found on server`
+    });
+  }
+});
+
 // Serve static files from both root and new directories
 app.use(express.static(__dirname));
 
