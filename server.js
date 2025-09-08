@@ -2005,8 +2005,8 @@ socket.on("winningsReceived", (data) => {
 
 });
 
-// Committing and pushing syntax error fixes to VPS
-console.log("🚀 Server ready with all syntax fixes applied");
+// Syntax error fix committed - pushing to VPS
+});
 
 // VPS Configuration
 const PORT = process.env.PORT || 3000;
