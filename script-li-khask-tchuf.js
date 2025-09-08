@@ -3043,27 +3043,60 @@ async function joinRoomManually() {
       const roomCounter = await cashPongContract.methods.roomCounter().call();
       console.log(`📊 Current room counter: ${roomCounter} (highest room created so far)`);
       
+      // If trying to join a room higher than counter, check if it was just created
       if (parseInt(roomIdInput) > parseInt(roomCounter)) {
-        // Check if user has a previous room in localStorage
-        const storedRoomId = localStorage.getItem("currentRoomId");
-        let suggestion = "";
-        if (storedRoomId && storedRoomId !== roomIdInput) {
-          suggestion = `\n\n💡 Suggestion: You have Room ${storedRoomId} stored from a previous session. Try that room instead?`;
-        }
+        console.log(`⚠️ Room ${roomIdInput} is higher than counter ${roomCounter} - checking if recently created...`);
         
-        alert(`❌ Room ${roomIdInput} doesn't exist yet. The highest room number created is ${roomCounter}.\n\nPlease use a room number between 1 and ${roomCounter}.${suggestion}`);
-        
-        // Auto-suggest the stored room if available
-        if (storedRoomId && storedRoomId !== roomIdInput) {
-          const tryStored = confirm(`Would you like to try joining your previous room (${storedRoomId}) instead?`);
-          if (tryStored) {
-            document.getElementById("roomIdToJoin").value = storedRoomId;
-            console.log(`🔄 Auto-filled Room ${storedRoomId} from localStorage`);
+        // Check recent RoomCreated events for this specific room
+        try {
+          const currentBlock = await web3.eth.getBlockNumber();
+          const fromBlock = Math.max(Number(currentBlock) - 50, 0); // Check last 50 blocks
+          
+          console.log(`🔍 Checking RoomCreated events from block ${fromBlock} to ${currentBlock}...`);
+          
+          const roomEvents = await cashPongContract.getPastEvents('RoomCreated', {
+            filter: { roomId: roomIdInput },
+            fromBlock: fromBlock,
+            toBlock: 'latest'
+          });
+          
+          if (roomEvents.length > 0) {
+            const event = roomEvents[0];
+            console.log(`✅ Found RoomCreated event for Room ${roomIdInput}:`, event.returnValues);
+            console.log(`🔗 Transaction: ${event.transactionHash}`);
+            console.log(`📦 Block: ${event.blockNumber}`);
+            
+            // Room exists in events, continue with join process
+            alert(`✅ Room ${roomIdInput} found in recent blockchain events! Transaction: ${event.transactionHash.substring(0, 10)}...\n\nContinuing with join process...`);
+          } else {
+            console.log(`❌ No RoomCreated events found for Room ${roomIdInput} in recent blocks`);
+            
+            // Check if user has a previous room in localStorage
+            const storedRoomId = localStorage.getItem("currentRoomId");
+            let suggestion = "";
+            if (storedRoomId && storedRoomId !== roomIdInput) {
+              suggestion = `\n\n💡 Suggestion: You have Room ${storedRoomId} stored from a previous session. Try that room instead?`;
+            }
+            
+            alert(`❌ Room ${roomIdInput} not found in recent blockchain events.\n\nThe blockchain shows highest room is ${roomCounter}.\n\nIf you just created this room, wait 1-2 minutes for blockchain sync and try again.${suggestion}`);
+            
+            // Auto-suggest the stored room if available
+            if (storedRoomId && storedRoomId !== roomIdInput) {
+              const tryStored = confirm(`Would you like to try joining your previous room (${storedRoomId}) instead?`);
+              if (tryStored) {
+                document.getElementById("roomIdToJoin").value = storedRoomId;
+                console.log(`🔄 Auto-filled Room ${storedRoomId} from localStorage`);
+                return;
+              }
+            }
+            
             return;
           }
+        } catch (eventError) {
+          console.error("❌ Error checking RoomCreated events:", eventError);
+          alert(`⚠️ Can't verify Room ${roomIdInput} exists yet. If you just created it, wait 1-2 minutes for blockchain confirmation and try again.`);
+          return;
         }
-        
-        return;
       }
     } catch (counterError) {
       console.error("❌ Error getting room counter:", counterError);
@@ -3958,5 +3991,75 @@ window.checkStoredRoom = async function() {
   } catch (error) {
     console.error("❌ Error checking stored room:", error);
     alert("❌ Error checking stored room: " + error.message);
+  }
+};
+
+// Function to force refresh room counter and check recent rooms
+window.refreshRoomCounter = async function() {
+  try {
+    console.log("🔄 Force refreshing room counter...");
+    
+    if (!cashPongContract) {
+      alert("❌ Contract not connected. Connect MetaMask first.");
+      return;
+    }
+    
+    // Get room counter with fresh call
+    const roomCounter = await cashPongContract.methods.roomCounter().call();
+    console.log(`📊 Current room counter: ${roomCounter}`);
+    
+    // Check recent RoomCreated events
+    const currentBlock = await web3.eth.getBlockNumber();
+    const fromBlock = Math.max(Number(currentBlock) - 100, 0); // Check last 100 blocks
+    
+    console.log(`🔍 Checking recent RoomCreated events from block ${fromBlock}...`);
+    
+    const recentEvents = await cashPongContract.getPastEvents('RoomCreated', {
+      fromBlock: fromBlock,
+      toBlock: 'latest'
+    });
+    
+    console.log(`Found ${recentEvents.length} recent room creation events`);
+    
+    if (recentEvents.length > 0) {
+      const recentRooms = recentEvents.map(event => ({
+        roomId: event.returnValues.roomId,
+        playerA: event.returnValues.playerA,
+        playerB: event.returnValues.playerB,
+        betAmount: web3.utils.fromWei(event.returnValues.betAmount, 'ether'),
+        blockNumber: event.blockNumber,
+        txHash: event.transactionHash
+      }));
+      
+      console.log("Recent rooms created:", recentRooms);
+      
+      // Show highest room numbers
+      const roomIds = recentRooms.map(r => parseInt(r.roomId)).sort((a, b) => b - a);
+      const highestRecent = Math.max(...roomIds);
+      
+      let message = `🔄 Room Counter Refresh:\n\n`;
+      message += `📊 Contract counter: ${roomCounter}\n`;
+      message += `🎯 Highest recent room: ${highestRecent}\n\n`;
+      message += `Recent rooms:\n`;
+      
+      recentRooms.slice(0, 5).forEach(room => {
+        const isYours = room.playerA.toLowerCase() === connectedWallet.toLowerCase() || 
+                       room.playerB.toLowerCase() === connectedWallet.toLowerCase();
+        const marker = isYours ? "👤 " : "   ";
+        message += `${marker}Room ${room.roomId}: ${room.betAmount} ETH (Block ${room.blockNumber})\n`;
+      });
+      
+      alert(message);
+      
+      return { roomCounter, highestRecent, recentRooms };
+    } else {
+      alert(`📊 Room counter: ${roomCounter}\n\nNo recent room creation events found in last 100 blocks.`);
+      return { roomCounter, highestRecent: roomCounter, recentRooms: [] };
+    }
+    
+  } catch (error) {
+    console.error("❌ Error refreshing room counter:", error);
+    alert("❌ Error refreshing room counter: " + error.message);
+    return null;
   }
 };
