@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cashpong</title>
   <link rel="stylesheet" href="./styles.css">
-  <link rel="icon" type="image/png" sizes="32x32" href="../hadi.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="../hadi.png">
-  <link rel="icon" type="image/x-icon" href="../favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/hadi.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/hadi.png">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <style>
     body {
       background: linear-gradient(135deg, #1a2233 0%, #2d3748 50%, #1a2233 100%);
@@ -282,8 +282,6 @@
     </div>
 
     <div style="margin-top: 30px;">
-      <button class="play-button" onclick="startMultiplayerGame()" id="multiplayerButton">🎮 MULTIPLAYER MODE</button>
-      <button class="secondary-button" onclick="startSoloGame()" id="soloButton">🎯 SOLO MODE</button>
       <button class="play-button" onclick="viewRules()" id="rulesButton">📋 RÈGLES DU JEU</button>
     </div>
     
@@ -388,10 +386,12 @@
       // Update main content
       document.querySelector('.game-subtitle').textContent = lang.subtitle;
       document.querySelector('.game-description').textContent = lang.description;
-      document.getElementById('multiplayerButton').textContent = lang.multiplayerButton;
-      document.getElementById('soloButton').textContent = lang.soloButton;
       document.getElementById('rulesButton').textContent = lang.rulesButton;
-      document.getElementById('networkDescription').textContent = lang.networkDescription;
+      
+      const networkDesc = document.getElementById('networkDescription');
+      if (networkDesc) {
+        networkDesc.textContent = lang.networkDescription;
+      }
       
       // Update features
       const featureTexts = document.querySelectorAll('.feature-text');
@@ -421,7 +421,6 @@
     function updateMetaMaskStatus() {
       const lang = languages[currentLanguage];
       const walletStatus = document.getElementById('walletStatus');
-      const multiplayerBtn = document.getElementById('multiplayerButton');
 
       if (typeof window.ethereum !== 'undefined') {
         walletStatus.innerHTML = lang.walletDetected;
@@ -432,7 +431,6 @@
           .then(accounts => {
             if (accounts.length > 0) {
               walletStatus.innerHTML = `${lang.walletConnected} ${accounts[0].substring(0, 8)}...`;
-              multiplayerBtn.innerHTML = lang.multiplayerButton;
             } else {
               walletStatus.innerHTML = lang.walletDetectedNotConnected;
               walletStatus.style.color = '#60f0ff';
@@ -444,10 +442,6 @@
       } else {
         walletStatus.innerHTML = lang.walletNotFound;
         walletStatus.style.color = '#ef4444';
-        multiplayerBtn.innerHTML = lang.installMetamask;
-        multiplayerBtn.onclick = function() {
-          window.open('https://metamask.io/', '_blank');
-        };
       }
     }
 
