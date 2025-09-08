@@ -1253,42 +1253,23 @@ cashPongContract.events.PlayerJoined()
         console.log(`🚀 Room ${roomId} is ready for gameplay!`);
         console.log(`${'='.repeat(60)}`);
         
-        // 🔥 AUTOMATICALLY JOIN PLAYERS TO SOCKET.IO ROOM AND START GAME
-        // Find connected sockets with matching player addresses (FIXED - NO AWAIT)
-        let playerASockets = [];
-        let playerBSockets = [];
-        
-        console.log(`🔍 [DEBUG] Searching for players in users object:`);
+        // 🔥 AUTOMATICALLY JOIN PLAYERS TO SOCKET.IO ROOM USING PROPER MULTIPLAYER SERVER
+        console.log(`🔍 [DEBUG] Searching for players using MultiplayerGameServer:`);
         console.log(`🔍 [DEBUG] Looking for PlayerA: ${room.playerA}`);
         console.log(`🔍 [DEBUG] Looking for PlayerB: ${room.playerB}`);
-        console.log(`🔍 [DEBUG] Available users:`, Object.keys(users));
+        console.log(`🔍 [DEBUG] Total registered users: ${gameServer.connectedUsers.size}`);
         
-        // Use the existing users object to find sockets (FIXED - users stores socket objects directly)
-        Object.values(users).forEach((socket, index) => {
-          console.log(`🔍 [DEBUG] Socket ${index}:`, {
-            username: socket.username,
-            ethAddress: socket.ethAddress,
-            socketId: socket.id
-          });
-          
-          if (socket && socket.ethAddress) {
-            if (socket.ethAddress.toLowerCase() === room.playerA) {
-              playerASockets.push(socket);
-              console.log(`✅ [DEBUG] Found PlayerA match: ${socket.username} (${socket.ethAddress})`);
-            }
-            if (socket.ethAddress.toLowerCase() === room.playerB) {
-              playerBSockets.push(socket);
-              console.log(`✅ [DEBUG] Found PlayerB match: ${socket.username} (${socket.ethAddress})`);
-            }
-          }
-        });
+        // Use the proper getUserByAddress method from MultiplayerGameServer
+        const playerAUser = gameServer.getUserByAddress(room.playerA);
+        const playerBUser = gameServer.getUserByAddress(room.playerB);
         
-        console.log(`🔍 Found ${playerASockets.length} sockets for PlayerA and ${playerBSockets.length} sockets for PlayerB`);
+        console.log(`🔍 [DEBUG] PlayerA user found:`, playerAUser ? `${playerAUser.username} (${playerAUser.ethAddress})` : 'NOT FOUND');
+        console.log(`🔍 [DEBUG] PlayerB user found:`, playerBUser ? `${playerBUser.username} (${playerBUser.ethAddress})` : 'NOT FOUND');
         
-        // Join both players to the Socket.IO room (FIXED - objects are already sockets)
-        if (playerASockets.length > 0 && playerBSockets.length > 0) {
-          const playerASocket = playerASockets[0];
-          const playerBSocket = playerBSockets[0];
+        // Join both players to the Socket.IO room using proper user objects
+        if (playerAUser && playerBUser) {
+          const playerASocket = playerAUser.socket;
+          const playerBSocket = playerBUser.socket;
           
           if (playerASocket && playerBSocket) {
             // Join both players to the room
@@ -1296,10 +1277,12 @@ cashPongContract.events.PlayerJoined()
             playerBSocket.join(roomId);
             
             console.log(`✅ Both players automatically joined Socket.IO room ${roomId}`);
+            console.log(`✅ PlayerA ${playerAUser.username} (${playerAUser.ethAddress}) joined room ${roomId}`);
+            console.log(`✅ PlayerB ${playerBUser.username} (${playerBUser.ethAddress}) joined room ${roomId}`);
             
-            // Update room with socket IDs
-            room.playerASocketId = playerASocketId;
-            room.playerBSocketId = playerBSocketId;
+            // Update room with socket IDs for reference
+            room.playerASocketId = playerASocket.id;
+            room.playerBSocketId = playerBSocket.id;
             room.status = "waiting_for_start";
             
             // Notify both players they can start the game
@@ -1433,6 +1416,20 @@ function cleanupPreviousSocket(identifier) {
   socket.ethAddress = normalizedAddress;
   socket.role = role;
 
+  // 🔥 REGISTER WITH MULTIPLAYER GAME SERVER (NEW SYSTEM)
+  const registrationSuccess = gameServer.registerUser(socket, {
+    username: normalizedUsername,
+    ethAddress: normalizedAddress,
+    role: role
+  });
+  
+  if (registrationSuccess) {
+    console.log(`✅ [MULTIPLAYER SERVER] User registered: ${normalizedUsername} (${normalizedAddress})`);
+  } else {
+    console.warn(`⚠️ [MULTIPLAYER SERVER] Failed to register user: ${normalizedUsername} (${normalizedAddress})`);
+  }
+
+  // 🔥 LEGACY SYSTEM: Also register in old users object for backward compatibility
   if (normalizedUsername) {
     cleanupPreviousSocket(normalizedUsername);
     users[normalizedUsername] = socket;
@@ -1867,44 +1864,42 @@ socket.on("startServerGame", (data) => {
     // Create game instance with server-side physics
     const gameInstance = gameServer.createGameInstance(roomId, room.playerA, room.playerB);
     
-    // 🔥 FIND AND JOIN BOTH PLAYERS TO SOCKET.IO ROOM FOR BROADCASTING (FIXED + DEBUG)
-    console.log(`🔍 [GAME START] Finding sockets for both players...`);
+    // 🔥 FIND AND JOIN BOTH PLAYERS TO SOCKET.IO ROOM USING MULTIPLAYER SERVER
+    console.log(`🔍 [GAME START] Finding sockets for both players using MultiplayerGameServer...`);
     console.log(`🔍 [GAME START] Room PlayerA: "${room.playerA}", PlayerB: "${room.playerB}"`);
-    console.log(`🔍 [GAME START] Total users in users object: ${Object.keys(users).length}`);
+    console.log(`🔍 [GAME START] Total registered users: ${gameServer.connectedUsers.size}`);
     
-    // Debug: show all users in the users object
-    Object.entries(users).forEach(([key, socket], index) => {
-      console.log(`🔍 [GAME START] User ${index}: key="${key}", socketId="${socket?.id}", ethAddress="${socket?.ethAddress}", username="${socket?.username}"`);
-    });
+    // Use the proper getUserByAddress method from MultiplayerGameServer
+    const playerAUser = gameServer.getUserByAddress(room.playerA);
+    const playerBUser = gameServer.getUserByAddress(room.playerB);
+    
+    console.log(`🔍 [GAME START] PlayerA user:`, playerAUser ? `${playerAUser.username} (${playerAUser.ethAddress}) - Socket: ${playerAUser.socket?.id}` : 'NOT FOUND');
+    console.log(`🔍 [GAME START] PlayerB user:`, playerBUser ? `${playerBUser.username} (${playerBUser.ethAddress}) - Socket: ${playerBUser.socket?.id}` : 'NOT FOUND');
     
     let foundPlayerA = false;
     let foundPlayerB = false;
     
-    Object.values(users).forEach(userSocket => {
-      if (userSocket && userSocket.id && userSocket.ethAddress) {
-        const userAddress = userSocket.ethAddress.toLowerCase();
-        console.log(`🔍 [GAME START] Checking socket ${userSocket.id} with address ${userAddress}`);
-        
-        if (userAddress === room.playerA.toLowerCase()) {
-          foundPlayerA = true;
-          if (userSocket.id !== socket.id) { // Don't double-join requesting socket
-            userSocket.join(roomId);
-            console.log(`✅ [GAME START] PlayerA ${userSocket.username} (${userAddress}) joined room ${roomId}`);
-          } else {
-            console.log(`✅ [GAME START] PlayerA ${userSocket.username} (${userAddress}) already in room (requesting socket)`);
-          }
-        }
-        if (userAddress === room.playerB.toLowerCase()) {
-          foundPlayerB = true;
-          if (userSocket.id !== socket.id) { // Don't double-join requesting socket
-            userSocket.join(roomId);
-            console.log(`✅ [GAME START] PlayerB ${userSocket.username} (${userAddress}) joined room ${roomId}`);
-          } else {
-            console.log(`✅ [GAME START] PlayerB ${userSocket.username} (${userAddress}) already in room (requesting socket)`);
-          }
-        }
+    // Join PlayerA to Socket.IO room if found and not already joined
+    if (playerAUser && playerAUser.socket) {
+      if (playerAUser.socket.id !== socket.id) { // Don't double-join requesting socket
+        playerAUser.socket.join(roomId);
+        console.log(`✅ [GAME START] PlayerA ${playerAUser.username} (${playerAUser.ethAddress}) joined room ${roomId}`);
+      } else {
+        console.log(`✅ [GAME START] PlayerA ${playerAUser.username} (${playerAUser.ethAddress}) already in room (requesting socket)`);
       }
-    });
+      foundPlayerA = true;
+    }
+    
+    // Join PlayerB to Socket.IO room if found and not already joined  
+    if (playerBUser && playerBUser.socket) {
+      if (playerBUser.socket.id !== socket.id) { // Don't double-join requesting socket
+        playerBUser.socket.join(roomId);
+        console.log(`✅ [GAME START] PlayerB ${playerBUser.username} (${playerBUser.ethAddress}) joined room ${roomId}`);
+      } else {
+        console.log(`✅ [GAME START] PlayerB ${playerBUser.username} (${playerBUser.ethAddress}) already in room (requesting socket)`);
+      }
+      foundPlayerB = true;
+    }
     
     console.log(`🔍 [GAME START] Results: PlayerA found=${foundPlayerA}, PlayerB found=${foundPlayerB}`);
     if (!foundPlayerA || !foundPlayerB) {
@@ -1914,11 +1909,7 @@ socket.on("startServerGame", (data) => {
     // Start the server-side game loop
     gameServer.startServerGame(roomId);
     
-    // Get usernames for display
-    const playerAUser = gameServer.usersByAddress.get(room.playerA.toLowerCase());
-    const playerBUser = gameServer.usersByAddress.get(room.playerB.toLowerCase());
-    
-    // Function to get display name - prioritize permanent real names
+    // Function to get display name - prioritize permanent real names (reusing playerAUser and playerBUser from above)
     const getDisplayName = (user, fallbackAddress) => {
       // 🎯 D'ABORD: Chercher dans les noms permanents
       const permanentName = gameServer.permanentUserNames.get(fallbackAddress.toLowerCase());
@@ -2022,6 +2013,9 @@ socket.on("winningsReceived", (data) => {
 
   const username = socket.username?.toLowerCase();
   const ethAddress = socket.ethAddress?.toLowerCase();
+
+  // 🔥 UNREGISTER FROM MULTIPLAYER GAME SERVER (NEW SYSTEM)
+  gameServer.unregisterUser(socket.id);
 
   // Find the room this socket was in and notify opponent
   const roomId = socket.currentRoomId;
