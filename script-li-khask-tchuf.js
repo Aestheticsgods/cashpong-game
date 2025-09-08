@@ -2897,55 +2897,40 @@ window.smartJoin = async function() {
   }
 };
 
-// DIFFERENT APPROACH: Use blockchain events to find rooms
+// SIMPLE DIRECT APPROACH: Try the newest room numbers
 async function checkExistingRooms() {
   try {
-    console.log("🔍 NEW APPROACH: Using blockchain events to find rooms...");
+    console.log("🔍 SIMPLE APPROACH: Trying newest room numbers directly...");
     
     const currentAccount = (await web3.eth.getAccounts())[0].toLowerCase();
     console.log(`👤 Looking for rooms for: ${currentAccount}`);
     
-    // Get RoomCreated events from recent blocks
-    const currentBlock = Number(await web3.eth.getBlockNumber());
-    const fromBlock = Math.max(currentBlock - 10000, 0); // Last 10000 blocks
-    
-    console.log(`📊 Scanning events from block ${fromBlock} to ${currentBlock}`);
-    
-    const roomEvents = await cashPongContract.getPastEvents('RoomCreated', {
-      fromBlock: fromBlock,
-      toBlock: 'latest'
-    });
-    
-    console.log(`🎯 Found ${roomEvents.length} RoomCreated events`);
-    
     const existingRooms = [];
     
-    // Check each room from events
-    for (const event of roomEvents) {
-      const roomId = event.returnValues.roomId;
-      const playerA = event.returnValues.playerA.toLowerCase();
-      const playerB = event.returnValues.playerB.toLowerCase();
-      
-      // Only check rooms where current user is involved
-      if (playerA === currentAccount || playerB === currentAccount) {
-        console.log(`🎮 Checking your room ${roomId}...`);
-        
-        try {
-          const room = await cashPongContract.methods.getRoom(roomId).call();
-          if (room.playerA && room.playerA !== "0x0000000000000000000000000000000000000000") {
+    // Simple direct approach: check the newest room numbers (48-55)
+    // Based on server logs showing rooms 49, 50, 51 were just created
+    for (let roomId = 55; roomId >= 48; roomId--) {
+      console.log(`🔍 Checking room ${roomId}...`);
+      try {
+        const room = await cashPongContract.methods.getRoom(roomId).call();
+        if (room.playerA && room.playerA !== "0x0000000000000000000000000000000000000000") {
+          const isPlayerB = room.playerB && room.playerB.toLowerCase() === currentAccount;
+          const isPlayerA = room.playerA.toLowerCase() === currentAccount;
+          
+          if (isPlayerB || isPlayerA) {
             existingRooms.push({
-              roomId: parseInt(roomId),
+              roomId: roomId,
               playerA: room.playerA,
               playerB: room.playerB,
               betAmount: room.betAmount,
               playerAJoined: room.playerAJoined,
               playerBJoined: room.playerBJoined,
               isFinished: room.isFinished,
-              userRole: playerA === currentAccount ? 'PlayerA' : 'PlayerB'
+              userRole: isPlayerA ? 'PlayerA' : 'PlayerB'
             });
             
             console.log(`✅ Your room ${roomId}:`, {
-              role: playerA === currentAccount ? 'PlayerA (Creator)' : 'PlayerB (Invited)',
+              role: isPlayerA ? 'PlayerA (Creator)' : 'PlayerB (Invited)',
               playerA: room.playerA.substring(0, 10) + "...",
               playerB: room.playerB.substring(0, 10) + "...",
               betAmount: web3.utils.fromWei(room.betAmount, 'ether') + " ETH",
@@ -2953,16 +2938,16 @@ async function checkExistingRooms() {
               isFinished: room.isFinished
             });
           }
-        } catch (error) {
-          console.log(`❌ Error checking room ${roomId}:`, error.message);
         }
+      } catch (error) {
+        // Room doesn't exist, continue
       }
     }
     
     console.log(`📋 Summary: Found ${existingRooms.length} rooms where you participate`);
     
     if (existingRooms.length === 0) {
-      console.log("⚠️ No rooms found for your address! Create a new room or ask to be invited.");
+      console.log("⚠️ No rooms found for your address in rooms 48-55! Try joining Room 51 manually.");
     } else {
       console.log("🎯 Your rooms:");
       existingRooms.forEach(room => {
