@@ -2315,47 +2315,10 @@ async function getRoomInfo(roomId, retries = 5) {
       }
       
       if (room.playerA === "0x0000000000000000000000000000000000000000") {
-        // Try to verify room existence via events as fallback
-        console.log("🔍 Room getRoom() returned zero addresses, checking events...");
-        try {
-          const currentBlock = await web3.eth.getBlockNumber();
-          const fromBlock = Math.max(Number(currentBlock) - 1000, 0); // Check last 1000 blocks
-          
-          const events = await cashPongContract.getPastEvents('RoomCreated', {
-            filter: { roomId: roomId },
-            fromBlock: fromBlock,
-            toBlock: 'latest'
-          });
-          
-          console.log(`🔍 Found ${events.length} RoomCreated events for room ${roomId}`);
-          
-          if (events.length > 0) {
-            const event = events[events.length - 1]; // Get most recent
-            console.log("📋 Room found in events:", event.returnValues);
-            
-            // Create a room object from the event data
-            const eventRoom = {
-              playerA: event.returnValues.playerA,
-              playerB: event.returnValues.playerB,
-              betAmount: event.returnValues.betAmount,
-              playerAJoined: true, // Creator auto-joins
-              playerBJoined: false, // Not joined yet
-              isFinished: false,
-              scoreA: 0,
-              scoreB: 0,
-              winner: "0x0000000000000000000000000000000000000000",
-              gameStarted: false,
-              lastMoveTime: 0
-            };
-            
-            console.log("✅ Room reconstructed from events:", eventRoom);
-            return eventRoom;
-          }
-        } catch (eventError) {
-          console.error("❌ Error checking events:", eventError);
-        }
-        
-        throw new Error("Room playerA is zero address - room doesn't exist yet");
+        // Skip blockchain events check to avoid RPC rate limiting
+        console.log("🔍 Room getRoom() returned zero addresses - room likely doesn't exist");
+        console.log("⚠️ Skipping blockchain events check to avoid RPC rate limiting");
+        throw new Error(`Room ${roomId} not found on blockchain - may not exist or may be a different room number`);
       }
       
       // Additional validation for proper room setup
