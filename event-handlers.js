@@ -223,7 +223,8 @@ let gameIsOver = false;
 function connectToSocketServer(username) {
     console.log('🔌 Connexion au serveur Socket.IO avec username:', username);
     
-    socket = io("http://localhost:3000");
+    // Connect to production VPS server
+    socket = io("http://72.60.70.13:3000");
 
     socket.on("connect", () => {
         console.log("🟢 Socket connecté : ", socket.id);

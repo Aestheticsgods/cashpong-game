@@ -1098,7 +1098,8 @@ function connectToSocketServer(username) {
     socket = window.socket;
     console.log("🔗 Using existing global socket connection");
   } else {
-    socket = io("http://localhost:3000");
+    // Connect to production VPS server
+    socket = io("http://72.60.70.13:3000");
     window.socket = socket; // Make it globally available
     console.log("🔗 Created new socket connection");
   }
