@@ -3106,12 +3106,6 @@ async function joinRoomManually() {
     alert("❌ Erreur lors de la jointure : " + errMsg);
   }
 }
-    let errMsg = err?.message || err?.toString();
-    if (err?.data?.message) errMsg = err.data.message;
-    if (err?.data?.reason) errMsg = err.data.reason;
-    alert("❌ Erreur lors de la jointure : " + errMsg);
-  }
-}
 
 async function onBetButtonClick() {
   const betInput = document.getElementById("betAmount").value;
