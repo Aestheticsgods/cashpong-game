@@ -3037,6 +3037,20 @@ async function joinRoomManually() {
 
     console.log("🔍 Tentative de rejoindre la room :", roomIdInput);
 
+    // First, check what the current room counter is
+    console.log("🔍 Checking current room counter...");
+    try {
+      const roomCounter = await cashPongContract.methods.roomCounter().call();
+      console.log(`📊 Current room counter: ${roomCounter} (highest room created so far)`);
+      
+      if (parseInt(roomIdInput) > parseInt(roomCounter)) {
+        alert(`❌ Room ${roomIdInput} doesn't exist yet. The highest room number created is ${roomCounter}.\n\nPlease use a room number between 1 and ${roomCounter}.`);
+        return;
+      }
+    } catch (counterError) {
+      console.error("❌ Error getting room counter:", counterError);
+    }
+
     // Vérifier les informations de la room sur la blockchain
     const room = await getRoomInfo(roomIdInput);
     if (!room || !room.playerA || room.playerA === "0x0000000000000000000000000000000000000000") {
@@ -3780,3 +3794,88 @@ async function testContractConnection() {
     return false;
   }
 }
+
+// Function to scan and show available rooms
+async function scanAvailableRooms() {
+  try {
+    console.log("🔍 Scanning for available rooms...");
+    
+    if (!cashPongContract || !connectedWallet) {
+      alert("❌ Please connect MetaMask first");
+      return;
+    }
+    
+    const roomCounter = await cashPongContract.methods.roomCounter().call();
+    console.log(`📊 Scanning rooms 1 to ${roomCounter}...`);
+    
+    const availableRooms = [];
+    const userRooms = [];
+    
+    for (let i = 1; i <= parseInt(roomCounter); i++) {
+      try {
+        const room = await cashPongContract.methods.getRoom(i).call();
+        if (room.playerA && room.playerA !== "0x0000000000000000000000000000000000000000") {
+          const isPlayerA = room.playerA.toLowerCase() === connectedWallet.toLowerCase();
+          const isPlayerB = room.playerB.toLowerCase() === connectedWallet.toLowerCase();
+          
+          if (isPlayerA || isPlayerB) {
+            userRooms.push({
+              roomId: i,
+              role: isPlayerA ? 'Creator (PlayerA)' : 'Invited (PlayerB)',
+              playerBJoined: room.playerBJoined,
+              betAmount: web3.utils.fromWei(room.betAmount, 'ether'),
+              isFinished: room.isFinished
+            });
+          } else if (!room.playerBJoined && room.playerB.toLowerCase() === connectedWallet.toLowerCase()) {
+            availableRooms.push({
+              roomId: i,
+              creator: room.playerA,
+              betAmount: web3.utils.fromWei(room.betAmount, 'ether')
+            });
+          }
+        }
+      } catch (error) {
+        // Room doesn't exist or error accessing it
+      }
+    }
+    
+    console.log("🎯 Your rooms:", userRooms);
+    console.log("🆕 Available rooms you can join:", availableRooms);
+    
+    let message = `📊 Room Scan Results:\n\n`;
+    message += `📈 Total rooms created: ${roomCounter}\n\n`;
+    
+    if (userRooms.length > 0) {
+      message += `🎮 Your rooms:\n`;
+      userRooms.forEach(room => {
+        const status = room.isFinished ? 'FINISHED' : 
+                      (room.role.includes('PlayerB') && !room.playerBJoined) ? 'CAN JOIN' :
+                      (room.role.includes('PlayerA') && !room.playerBJoined) ? 'WAITING FOR OPPONENT' :
+                      'ACTIVE';
+        message += `   Room ${room.roomId}: ${room.role} - ${status} (${room.betAmount} ETH)\n`;
+      });
+      message += `\n`;
+    }
+    
+    if (availableRooms.length > 0) {
+      message += `🆕 Available to join:\n`;
+      availableRooms.forEach(room => {
+        message += `   Room ${room.roomId}: ${room.betAmount} ETH\n`;
+      });
+    } else {
+      message += `❌ No rooms available for you to join.\n`;
+    }
+    
+    alert(message);
+    
+    return { userRooms, availableRooms };
+  } catch (error) {
+    console.error("❌ Error scanning rooms:", error);
+    alert("❌ Error scanning rooms: " + error.message);
+    return null;
+  }
+}
+
+// Make functions globally available
+window.testContractConnection = testContractConnection;
+window.scanAvailableRooms = scanAvailableRooms;
