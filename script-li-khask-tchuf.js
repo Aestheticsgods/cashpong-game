@@ -2817,6 +2817,64 @@ async function fetchRoomInfo() {
 }
 
 // Fonction pour rejoindre manuellement une room avec Room ID
+// Function to check what room numbers actually exist
+async function checkExistingRooms() {
+  try {
+    console.log("🔍 Checking what rooms actually exist on the blockchain...");
+    
+    // Get the current room counter from the contract
+    const roomCounter = await cashPongContract.methods.roomCounter().call();
+    console.log(`📊 Current room counter: ${roomCounter}`);
+    
+    const existingRooms = [];
+    const maxRoomsToCheck = Math.min(parseInt(roomCounter), 10); // Check last 10 rooms max
+    
+    for (let i = Math.max(1, parseInt(roomCounter) - maxRoomsToCheck + 1); i <= parseInt(roomCounter); i++) {
+      try {
+        const room = await cashPongContract.methods.getRoom(i).call();
+        if (room.playerA && room.playerA !== "0x0000000000000000000000000000000000000000") {
+          existingRooms.push({
+            roomId: i,
+            playerA: room.playerA,
+            playerB: room.playerB,
+            betAmount: room.betAmount,
+            playerAJoined: room.playerAJoined,
+            playerBJoined: room.playerBJoined,
+            isFinished: room.isFinished
+          });
+          console.log(`✅ Found existing room ${i}:`, {
+            playerA: room.playerA.substring(0, 10) + "...",
+            playerB: room.playerB.substring(0, 10) + "...",
+            betAmount: web3.utils.fromWei(room.betAmount, 'ether') + " ETH",
+            playerBJoined: room.playerBJoined,
+            isFinished: room.isFinished
+          });
+        }
+      } catch (error) {
+        console.log(`❌ Room ${i} doesn't exist or error checking:`, error.message);
+      }
+    }
+    
+    console.log(`📋 Summary: Found ${existingRooms.length} existing rooms out of ${maxRoomsToCheck} checked`);
+    
+    if (existingRooms.length === 0) {
+      console.log("⚠️ No existing rooms found! You may need to create a room first.");
+    } else {
+      console.log("🎯 Available rooms to join:");
+      existingRooms.forEach(room => {
+        const status = room.isFinished ? "FINISHED" : 
+                      room.playerBJoined ? "FULL" : "WAITING FOR PLAYER B";
+        console.log(`   Room ${room.roomId}: ${status} (${web3.utils.fromWei(room.betAmount, 'ether')} ETH)`);
+      });
+    }
+    
+    return existingRooms;
+  } catch (error) {
+    console.error("❌ Error checking existing rooms:", error);
+    return [];
+  }
+}
+
 async function joinRoomManually() {
   const roomIdInput = document.getElementById("roomIdToJoin").value.trim();
 
@@ -2872,6 +2930,15 @@ async function joinRoomManually() {
     } catch (networkError) {
       console.error("❌ Erreur de vérification réseau:", networkError);
       alert("❌ Impossible de vérifier le réseau. Vérifiez votre connexion MetaMask.");
+      return;
+    }
+
+    // 🔍 CHECK EXISTING ROOMS FIRST
+    console.log("🔍 Checking existing rooms before attempting to join...");
+    const existingRooms = await checkExistingRooms();
+    
+    if (existingRooms.length === 0) {
+      alert("⚠️ No existing rooms found on the blockchain! Please create a room first or check with the room creator for the correct room number.");
       return;
     }
 
