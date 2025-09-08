@@ -15,11 +15,20 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: { 
-    origin: process.env.NODE_ENV === 'production' ? ["https://yourproductiondomain.com"] : "*",
-    methods: ["GET", "POST"]
+    origin: process.env.NODE_ENV === 'production' 
+      ? [
+          process.env.FRONTEND_URL,
+          "https://yourdomain.com", // Replace with your actual domain
+          "http://yourdomain.com"
+        ] 
+      : "*",
+    methods: ["GET", "POST"],
+    credentials: true
   },
   pingTimeout: 60000,
-  pingInterval: 25000
+  pingInterval: 25000,
+  allowEIO3: true,
+  transports: ['websocket', 'polling']
 });
 
 const Web3 = require("web3");
@@ -1943,8 +1952,14 @@ socket.on("winningsReceived", (data) => {
 
 });
 
-server.listen(3000, () => {
-  console.log("🚀 Serveur CashPong prêt sur : http://localhost:3000");
+// VPS Configuration
+const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0'; // Allow external connections
+
+server.listen(PORT, HOST, () => {
+  console.log(`🚀 Serveur CashPong prêt sur : http://${HOST}:${PORT}`);
+  console.log(`🌐 Mode: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔗 Accessible depuis l'extérieur sur le port ${PORT}`);
 });
 
 // Polygon Mainnet is already configured and used for all contract calls.

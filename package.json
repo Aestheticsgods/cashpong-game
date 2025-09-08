@@ -10,7 +10,12 @@
     "deploy:amoy": "hardhat run scripts/deploy-test.js --network amoy",
     "node": "hardhat node",
     "deploy:local": "hardhat run scripts/deploy-test.js --network localhost",
-    "check:balance": "hardhat run scripts/check-polygon-balance.js --network polygon"
+    "check:balance": "hardhat run scripts/check-polygon-balance.js --network polygon",
+    "start": "node server.js",
+    "start:multiplayer": "node server-multiplayer.js",
+    "start:prod": "NODE_ENV=production node server.js",
+    "start:prod:multiplayer": "NODE_ENV=production node server-multiplayer.js",
+    "dev": "nodemon server.js"
   },
   "dependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
