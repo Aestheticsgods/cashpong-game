@@ -2914,9 +2914,9 @@ async function checkExistingRooms() {
     console.log(`📊 Current room counter: ${roomCounter}`);
     
     const existingRooms = [];
-    const maxRoomsToCheck = Math.min(parseInt(roomCounter), 10); // Check last 10 rooms max
     
-    for (let i = Math.max(1, parseInt(roomCounter) - maxRoomsToCheck + 1); i <= parseInt(roomCounter); i++) {
+    // Simple approach: check rooms 1 to 50 (covers most cases)
+    for (let i = 1; i <= 50; i++) {
       try {
         const room = await cashPongContract.methods.getRoom(i).call();
         if (room.playerA && room.playerA !== "0x0000000000000000000000000000000000000000") {
@@ -2938,11 +2938,11 @@ async function checkExistingRooms() {
           });
         }
       } catch (error) {
-        console.log(`❌ Room ${i} doesn't exist or error checking:`, error.message);
+        // Silently skip non-existent rooms
       }
     }
     
-    console.log(`📋 Summary: Found ${existingRooms.length} existing rooms out of ${maxRoomsToCheck} checked`);
+    console.log(`📋 Summary: Found ${existingRooms.length} existing rooms out of 50 checked`);
     
     if (existingRooms.length === 0) {
       console.log("⚠️ No existing rooms found! You may need to create a room first.");
