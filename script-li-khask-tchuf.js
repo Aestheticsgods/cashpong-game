@@ -2817,34 +2817,42 @@ async function fetchRoomInfo() {
 }
 
 // Fonction pour rejoindre manuellement une room avec Room ID
-// Function to find a room you can actually join - prioritize rooms where you're specifically assigned as PlayerB
+// Function to find a room you can actually join - scan MUCH wider range
 async function findJoinableRoom() {
   try {
-    console.log("🔍 Looking for a room you can actually join...");
+    console.log("🔍 COMPREHENSIVE SCAN: Looking for ANY room you can join...");
     const currentAccount = (await web3.eth.getAccounts())[0].toLowerCase();
     
     // Get the current room counter from the contract
     const roomCounter = await cashPongContract.methods.roomCounter().call();
-    console.log(`📊 Scanning rooms 1 to ${roomCounter} for rooms where you are PlayerB...`);
+    console.log(`📊 Blockchain room counter: ${roomCounter}`);
     
-    // Check recent rooms first (more likely to be active) and prioritize PlayerB assignments
-    for (let i = parseInt(roomCounter); i >= Math.max(1, parseInt(roomCounter) - 30); i--) {
+    // SCAN MUCH WIDER - go beyond the counter to catch newly created rooms
+    const maxScan = Math.max(parseInt(roomCounter) + 20, 50); // Scan up to room 50 or counter+20
+    
+    console.log(`🔍 WIDE SCAN: Checking rooms 1 to ${maxScan} for your participation...`);
+    
+    const foundRooms = [];
+    
+    // Check ALL rooms in range
+    for (let i = maxScan; i >= 1; i--) {
       try {
         const room = await cashPongContract.methods.getRoom(i).call();
         if (room.playerA && room.playerA !== "0x0000000000000000000000000000000000000000") {
           const isPlayerB = room.playerB && room.playerB.toLowerCase() === currentAccount;
+          const isPlayerA = room.playerA.toLowerCase() === currentAccount;
           
-          // PRIORITY: Find rooms where you are specifically assigned as PlayerB and haven't joined yet
-          if (isPlayerB && !room.playerBJoined && !room.isFinished) {
-            console.log(`🎯 PERFECT MATCH - Room ${i}: You are assigned as PlayerB and haven't joined yet!`, {
+          if (isPlayerB || isPlayerA) {
+            foundRooms.push({
+              roomId: i,
+              role: isPlayerB ? 'PlayerB' : 'PlayerA',
               playerA: room.playerA,
               playerB: room.playerB,
-              betAmount: web3.utils.fromWei(room.betAmount, 'ether') + ' ETH',
               playerAJoined: room.playerAJoined,
               playerBJoined: room.playerBJoined,
-              isFinished: room.isFinished
+              isFinished: room.isFinished,
+              betAmount: web3.utils.fromWei(room.betAmount, 'ether')
             });
-            return i;
           }
         }
       } catch (error) {
@@ -2852,14 +2860,49 @@ async function findJoinableRoom() {
       }
     }
     
-    console.log("❌ No rooms found where you are assigned as PlayerB and haven't joined yet.");
-    console.log("💡 You may need to ask someone to create a room and invite you as PlayerB.");
+    console.log(`🎯 FOUND ${foundRooms.length} ROOMS where you participate:`);
+    foundRooms.forEach(room => {
+      const status = room.isFinished ? 'FINISHED' : 
+                    (room.role === 'PlayerB' && !room.playerBJoined) ? 'CAN JOIN' :
+                    (room.role === 'PlayerA' && !room.playerBJoined) ? 'WAITING FOR PLAYERB' :
+                    'FULL';
+      console.log(`   Room ${room.roomId}: ${room.role} - ${status} (${room.betAmount} ETH)`);
+    });
+    
+    // Return the best room to join (prioritize rooms you can actually join)
+    const canJoin = foundRooms.find(r => r.role === 'PlayerB' && !r.playerBJoined && !r.isFinished);
+    if (canJoin) {
+      console.log(`✅ BEST MATCH: Room ${canJoin.roomId} - You can join as PlayerB!`);
+      return canJoin.roomId;
+    }
+    
+    const yourRooms = foundRooms.find(r => r.role === 'PlayerA' && !r.isFinished);
+    if (yourRooms) {
+      console.log(`✅ YOUR ROOM: Room ${yourRooms.roomId} - You created this room!`);
+      return yourRooms.roomId;
+    }
+    
+    console.log("❌ No joinable rooms found for your address:", currentAccount);
     return null;
   } catch (error) {
-    console.error("❌ Error finding joinable room:", error);
+    console.error("❌ Error in comprehensive room scan:", error);
     return null;
   }
 }
+
+// Add a smart join function that can be called from console
+window.smartJoin = async function() {
+  console.log("🤖 SMART JOIN: Finding the best room for you...");
+  const roomId = await findJoinableRoom();
+  if (roomId) {
+    console.log(`🎯 Smart Join suggests Room ${roomId}`);
+    document.getElementById('roomIdInput').value = roomId;
+    return joinRoomManually();
+  } else {
+    console.log("❌ Smart Join: No suitable rooms found");
+    alert("No rooms found where you can play. Ask someone to create a room and invite you!");
+  }
+};
 
 // Function to check what room numbers actually exist
 async function checkExistingRooms() {
@@ -3013,6 +3056,25 @@ async function joinRoomManually() {
       
       alert(`❌ Room ${roomIdInput} not found on blockchain.\n\nPlease check with the room creator for the correct room number.`);
       return;
+    }
+
+    // Additional check: verify you're supposed to be in this room
+    const currentAccount = (await web3.eth.getAccounts())[0].toLowerCase();
+    const isPlayerB = room.playerB && room.playerB.toLowerCase() === currentAccount;
+    const isPlayerA = room.playerA.toLowerCase() === currentAccount;
+    
+    if (!isPlayerB && !isPlayerA) {
+      alert(`❌ You are not assigned to Room ${roomIdInput}.\n\nPlayerA: ${room.playerA}\nPlayerB: ${room.playerB}\nYour address: ${currentAccount}\n\nThis room is for different players.`);
+      return;
+    }
+    
+    if (isPlayerA) {
+      alert(`ℹ️ You are PlayerA in Room ${roomIdInput}. You created this room.\n\nWaiting for PlayerB to join...`);
+      // PlayerA can still "join" to enter the room interface
+    }
+    
+    if (isPlayerB) {
+      console.log(`✅ Confirmed: You are PlayerB in Room ${roomIdInput}!`);
     }
 
     if (room.playerBJoined) {
