@@ -5,21 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cashpong</title>
   <link rel="stylesheet" href="./styles.css">
-  <link rel="icon" type="image/png" sizes="32x32" href="../hadi.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="../hadi.png">
-  <link rel="icon" type="image/x-icon" href="../favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/hadi.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/hadi.png">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <style>
     body {
       background: linear-gradient(135deg, #1a2233 0%, #2d3748 50%, #1a2233 100%);
       color: #e6f7ff;
       font-family: 'Segoe UI', Arial, sans-serif;
       margin: 0;
-      padding: 0;
+      padding: 20px 0;
       min-height: 100vh;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
-  overflow: auto;
+      overflow: auto;
       position: relative;
     }
 
@@ -48,6 +48,7 @@
       text-align: center;
       max-width: 800px;
       padding: 40px 20px;
+      margin-top: 20px;
       background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
       border-radius: 24px;
       border: 2px solid var(--glass-border);
@@ -214,9 +215,6 @@
 </head>
 <body>
   <div class="background-animation"></div>
-  <div class="logo" style="z-index:1000; position:relative; margin-top:40px; margin-bottom:10px;">
-    <img src="/hadi.png" alt="Logo" style="height: 120px; width: auto; margin-bottom: 10px; display:block; margin:0 auto;">
-  </div>
   
   <!-- Language Toggle Button -->
   <div id="languageToggle" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
@@ -240,9 +238,11 @@
   </div>
   
   <div class="game-container">
-    <div class="logo">
-  <img src="/hadi.png" alt="Logo" style="height: 120px; width: auto; margin-bottom: 10px;">
+    <!-- Logo at the top of the game container -->
+    <div style="text-align: center; margin-bottom: 30px;">
+      <img src="/hadi.png" alt="Cashpong Logo" style="height: 120px; width: auto; display: block; margin: 0 auto;">
     </div>
+    
     <div class="tagline game-subtitle">LE JEU DE PONG ULTIME</div>
     <div class="description game-description">
       Jouez au pong avec des enjeux réels ! Défiez vos amis dans des matchs compétitifs avec des mises en cryptomonnaie.
@@ -284,6 +284,13 @@
     <div style="margin-top: 30px;">
       <button class="play-button" onclick="viewRules()" id="rulesButton">📋 RÈGLES DU JEU</button>
     </div>
+    
+    <!-- Network Info -->
+    <div class="network-info">
+      <div class="network-badge">Polygon Network</div>
+      <p id="networkDescription">Connectez votre portefeuille MetaMask pour commencer à jouer. Toutes les transactions sont traitées sur Polygon pour un jeu rapide et peu coûteux.</p>
+    </div>
+    
     <!-- MetaMask Wallet Status -->
     <div id="walletStatus" style="margin-top: 20px; font-size: 1.1em; color: #60f0ff;"></div>
   </div>
@@ -379,10 +386,12 @@
       // Update main content
       document.querySelector('.game-subtitle').textContent = lang.subtitle;
       document.querySelector('.game-description').textContent = lang.description;
-      document.getElementById('multiplayerButton').textContent = lang.multiplayerButton;
-      document.getElementById('soloButton').textContent = lang.soloButton;
       document.getElementById('rulesButton').textContent = lang.rulesButton;
-      document.getElementById('networkDescription').textContent = lang.networkDescription;
+      
+      const networkDesc = document.getElementById('networkDescription');
+      if (networkDesc) {
+        networkDesc.textContent = lang.networkDescription;
+      }
       
       // Update features
       const featureTexts = document.querySelectorAll('.feature-text');
@@ -412,7 +421,6 @@
     function updateMetaMaskStatus() {
       const lang = languages[currentLanguage];
       const walletStatus = document.getElementById('walletStatus');
-      const multiplayerBtn = document.getElementById('multiplayerButton');
 
       if (typeof window.ethereum !== 'undefined') {
         walletStatus.innerHTML = lang.walletDetected;
@@ -423,7 +431,6 @@
           .then(accounts => {
             if (accounts.length > 0) {
               walletStatus.innerHTML = `${lang.walletConnected} ${accounts[0].substring(0, 8)}...`;
-              multiplayerBtn.innerHTML = lang.multiplayerButton;
             } else {
               walletStatus.innerHTML = lang.walletDetectedNotConnected;
               walletStatus.style.color = '#60f0ff';
@@ -435,10 +442,6 @@
       } else {
         walletStatus.innerHTML = lang.walletNotFound;
         walletStatus.style.color = '#ef4444';
-        multiplayerBtn.innerHTML = lang.installMetamask;
-        multiplayerBtn.onclick = function() {
-          window.open('https://metamask.io/', '_blank');
-        };
       }
     }
 
