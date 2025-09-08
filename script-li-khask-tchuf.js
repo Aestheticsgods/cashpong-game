@@ -2914,6 +2914,14 @@ async function checkExistingRooms() {
       try {
         const room = await cashPongContract.methods.getRoom(roomId).call();
         if (room.playerA && room.playerA !== "0x0000000000000000000000000000000000000000") {
+          console.log(`📋 Room ${roomId} data:`, {
+            playerA: room.playerA,
+            playerB: room.playerB,
+            currentAccount: currentAccount,
+            playerAMatch: room.playerA.toLowerCase() === currentAccount,
+            playerBMatch: room.playerB.toLowerCase() === currentAccount
+          });
+          
           const isPlayerB = room.playerB && room.playerB.toLowerCase() === currentAccount;
           const isPlayerA = room.playerA.toLowerCase() === currentAccount;
           
@@ -2947,7 +2955,10 @@ async function checkExistingRooms() {
     console.log(`📋 Summary: Found ${existingRooms.length} rooms where you participate`);
     
     if (existingRooms.length === 0) {
-      console.log("⚠️ No rooms found for your address in rooms 48-55! Try joining Room 51 manually.");
+      console.log("⚠️ No rooms found for your address in rooms 48-55! Trying Room 51 directly...");
+      // Since server logs show Room 51 was created, let's try it directly
+      document.getElementById('roomIdInput').value = '51';
+      console.log("🎯 Auto-filled Room 51 - click Join Room to continue");
     } else {
       console.log("🎯 Your rooms:");
       existingRooms.forEach(room => {
@@ -3024,61 +3035,13 @@ async function joinRoomManually() {
       return;
     }
 
-    // 🔍 CHECK EXISTING ROOMS FIRST
-    console.log("🔍 Checking existing rooms before attempting to join...");
-    const existingRooms = await checkExistingRooms();
-    
-    if (existingRooms.length === 0) {
-      alert("⚠️ No existing rooms found on the blockchain! Please create a room first or check with the room creator for the correct room number.");
-      return;
-    }
-
     console.log("🔍 Tentative de rejoindre la room :", roomIdInput);
 
     // Vérifier les informations de la room sur la blockchain
     const room = await getRoomInfo(roomIdInput);
     if (!room || !room.playerA || room.playerA === "0x0000000000000000000000000000000000000000") {
-      console.log(`❌ Room ${roomIdInput} not found. This might be a new room still syncing to blockchain...`);
-      
-      // For high room numbers that might be newly created, try to wait and check again
-      const roomNumber = parseInt(roomIdInput);
-      const currentCounter = await cashPongContract.methods.roomCounter().call();
-      
-      if (roomNumber > parseInt(currentCounter)) {
-        // Room number is higher than current counter - definitely doesn't exist yet
-        alert(`❌ Room ${roomIdInput} doesn't exist yet. Current highest room is ${currentCounter}.\n\nAsk the room creator to confirm the correct room number.`);
-        return;
-      } else if (roomNumber >= parseInt(currentCounter) - 5) {
-        // Room number is close to current counter - might be syncing
-        const waitAndRetry = confirm(`❌ Room ${roomIdInput} not found, but it might still be syncing to blockchain.\n\nWould you like to wait 10 seconds and try again?\n\n(This often happens with newly created rooms)`);
-        if (waitAndRetry) {
-          alert("⏳ Waiting 10 seconds for blockchain sync...");
-          await new Promise(resolve => setTimeout(resolve, 10000));
-          return joinRoomManually(); // Try again with same room number
-        }
-      }
-      
-      alert(`❌ Room ${roomIdInput} not found on blockchain.\n\nPlease check with the room creator for the correct room number.`);
+      alert("❌ Room introuvable sur la blockchain après plusieurs tentatives. Le Room ID pourrait être incorrect ou il y a un problème de synchronisation blockchain.");
       return;
-    }
-
-    // Additional check: verify you're supposed to be in this room
-    const currentAccount = (await web3.eth.getAccounts())[0].toLowerCase();
-    const isPlayerB = room.playerB && room.playerB.toLowerCase() === currentAccount;
-    const isPlayerA = room.playerA.toLowerCase() === currentAccount;
-    
-    if (!isPlayerB && !isPlayerA) {
-      alert(`❌ You are not assigned to Room ${roomIdInput}.\n\nPlayerA: ${room.playerA}\nPlayerB: ${room.playerB}\nYour address: ${currentAccount}\n\nThis room is for different players.`);
-      return;
-    }
-    
-    if (isPlayerA) {
-      alert(`ℹ️ You are PlayerA in Room ${roomIdInput}. You created this room.\n\nWaiting for PlayerB to join...`);
-      // PlayerA can still "join" to enter the room interface
-    }
-    
-    if (isPlayerB) {
-      console.log(`✅ Confirmed: You are PlayerB in Room ${roomIdInput}!`);
     }
 
     if (room.playerBJoined) {
@@ -3137,6 +3100,12 @@ async function joinRoomManually() {
 
   } catch (err) {
     console.error("❌ Erreur lors de la jointure de la room :", err);
+    let errMsg = err?.message || err?.toString();
+    if (err?.data?.message) errMsg = err.data.message;
+    if (err?.data?.reason) errMsg = err.data.reason;
+    alert("❌ Erreur lors de la jointure : " + errMsg);
+  }
+}
     let errMsg = err?.message || err?.toString();
     if (err?.data?.message) errMsg = err.data.message;
     if (err?.data?.reason) errMsg = err.data.reason;
