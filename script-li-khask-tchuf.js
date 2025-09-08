@@ -2897,54 +2897,80 @@ window.smartJoin = async function() {
   }
 };
 
-// Function to check what room numbers actually exist
+// DIFFERENT APPROACH: Use blockchain events to find rooms
 async function checkExistingRooms() {
   try {
-    console.log("🔍 Checking what rooms actually exist on the blockchain...");
+    console.log("🔍 NEW APPROACH: Using blockchain events to find rooms...");
     
-    // Get the current room counter from the contract
-    const roomCounter = await cashPongContract.methods.roomCounter().call();
-    console.log(`📊 Current room counter: ${roomCounter}`);
+    const currentAccount = (await web3.eth.getAccounts())[0].toLowerCase();
+    console.log(`👤 Looking for rooms for: ${currentAccount}`);
+    
+    // Get RoomCreated events from recent blocks
+    const currentBlock = await web3.eth.getBlockNumber();
+    const fromBlock = Math.max(currentBlock - 10000, 0); // Last 10000 blocks
+    
+    console.log(`📊 Scanning events from block ${fromBlock} to ${currentBlock}`);
+    
+    const roomEvents = await cashPongContract.getPastEvents('RoomCreated', {
+      fromBlock: fromBlock,
+      toBlock: 'latest'
+    });
+    
+    console.log(`🎯 Found ${roomEvents.length} RoomCreated events`);
     
     const existingRooms = [];
     
-    // Simple approach: check rooms 1 to 50 (covers most cases)
-    for (let i = 1; i <= 50; i++) {
-      try {
-        const room = await cashPongContract.methods.getRoom(i).call();
-        if (room.playerA && room.playerA !== "0x0000000000000000000000000000000000000000") {
-          existingRooms.push({
-            roomId: i,
-            playerA: room.playerA,
-            playerB: room.playerB,
-            betAmount: room.betAmount,
-            playerAJoined: room.playerAJoined,
-            playerBJoined: room.playerBJoined,
-            isFinished: room.isFinished
-          });
-          console.log(`✅ Found existing room ${i}:`, {
-            playerA: room.playerA.substring(0, 10) + "...",
-            playerB: room.playerB.substring(0, 10) + "...",
-            betAmount: web3.utils.fromWei(room.betAmount, 'ether') + " ETH",
-            playerBJoined: room.playerBJoined,
-            isFinished: room.isFinished
-          });
+    // Check each room from events
+    for (const event of roomEvents) {
+      const roomId = event.returnValues.roomId;
+      const playerA = event.returnValues.playerA.toLowerCase();
+      const playerB = event.returnValues.playerB.toLowerCase();
+      
+      // Only check rooms where current user is involved
+      if (playerA === currentAccount || playerB === currentAccount) {
+        console.log(`🎮 Checking your room ${roomId}...`);
+        
+        try {
+          const room = await cashPongContract.methods.getRoom(roomId).call();
+          if (room.playerA && room.playerA !== "0x0000000000000000000000000000000000000000") {
+            existingRooms.push({
+              roomId: parseInt(roomId),
+              playerA: room.playerA,
+              playerB: room.playerB,
+              betAmount: room.betAmount,
+              playerAJoined: room.playerAJoined,
+              playerBJoined: room.playerBJoined,
+              isFinished: room.isFinished,
+              userRole: playerA === currentAccount ? 'PlayerA' : 'PlayerB'
+            });
+            
+            console.log(`✅ Your room ${roomId}:`, {
+              role: playerA === currentAccount ? 'PlayerA (Creator)' : 'PlayerB (Invited)',
+              playerA: room.playerA.substring(0, 10) + "...",
+              playerB: room.playerB.substring(0, 10) + "...",
+              betAmount: web3.utils.fromWei(room.betAmount, 'ether') + " ETH",
+              playerBJoined: room.playerBJoined,
+              isFinished: room.isFinished
+            });
+          }
+        } catch (error) {
+          console.log(`❌ Error checking room ${roomId}:`, error.message);
         }
-      } catch (error) {
-        // Silently skip non-existent rooms
       }
     }
     
-    console.log(`📋 Summary: Found ${existingRooms.length} existing rooms out of 50 checked`);
+    console.log(`📋 Summary: Found ${existingRooms.length} rooms where you participate`);
     
     if (existingRooms.length === 0) {
-      console.log("⚠️ No existing rooms found! You may need to create a room first.");
+      console.log("⚠️ No rooms found for your address! Create a new room or ask to be invited.");
     } else {
-      console.log("🎯 Available rooms to join:");
+      console.log("🎯 Your rooms:");
       existingRooms.forEach(room => {
         const status = room.isFinished ? "FINISHED" : 
-                      room.playerBJoined ? "FULL" : "WAITING FOR PLAYER B";
-        console.log(`   Room ${room.roomId}: ${status} (${web3.utils.fromWei(room.betAmount, 'ether')} ETH)`);
+                      (room.userRole === 'PlayerB' && !room.playerBJoined) ? "CAN JOIN" :
+                      (room.userRole === 'PlayerA' && !room.playerBJoined) ? "WAITING FOR PLAYERB" :
+                      "FULL";
+        console.log(`   Room ${room.roomId}: ${room.userRole} - ${status} (${web3.utils.fromWei(room.betAmount, 'ether')} ETH)`);
       });
     }
     
