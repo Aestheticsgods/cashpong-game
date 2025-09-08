@@ -567,10 +567,10 @@ const contractABI = [
 const cashPongContract = new web3.eth.Contract(contractABI, contractAddress);
 
 // Configuration des middlewares Express
-app.use(express.static(__dirname));
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "new", "main.html"));
 });
+app.use(express.static(__dirname));
 
 // Écoute des événements blockchain (intégré au système multijoueur)
 cashPongContract.events.RoomCreated()
