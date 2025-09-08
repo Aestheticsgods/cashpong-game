@@ -2817,6 +2817,59 @@ async function fetchRoomInfo() {
 }
 
 // Fonction pour rejoindre manuellement une room avec Room ID
+// Function to find a room you can actually join
+async function findJoinableRoom() {
+  try {
+    console.log("🔍 Looking for a room you can actually join...");
+    const currentAccount = (await web3.eth.getAccounts())[0].toLowerCase();
+    
+    // Get the current room counter from the contract
+    const roomCounter = await cashPongContract.methods.roomCounter().call();
+    console.log(`📊 Scanning rooms 1 to ${roomCounter} for joinable rooms...`);
+    
+    // Check recent rooms first (more likely to be active)
+    for (let i = parseInt(roomCounter); i >= Math.max(1, parseInt(roomCounter) - 20); i--) {
+      try {
+        const room = await cashPongContract.methods.getRoom(i).call();
+        if (room.playerA && room.playerA !== "0x0000000000000000000000000000000000000000") {
+          const isPlayerB = room.playerB && room.playerB.toLowerCase() === currentAccount;
+          const isPlayerA = room.playerA.toLowerCase() === currentAccount;
+          
+          if (isPlayerB && !room.isFinished) {
+            console.log(`🎯 FOUND JOINABLE ROOM ${i}: You are PlayerB!`, {
+              playerA: room.playerA,
+              playerB: room.playerB,
+              betAmount: web3.utils.fromWei(room.betAmount, 'ether') + ' ETH',
+              playerBJoined: room.playerBJoined,
+              isFinished: room.isFinished
+            });
+            return i;
+          }
+          
+          if (isPlayerA && !room.isFinished) {
+            console.log(`🎯 FOUND YOUR CREATED ROOM ${i}: You are PlayerA!`, {
+              playerA: room.playerA,
+              playerB: room.playerB,
+              betAmount: web3.utils.fromWei(room.betAmount, 'ether') + ' ETH',
+              playerBJoined: room.playerBJoined,
+              isFinished: room.isFinished
+            });
+            return i;
+          }
+        }
+      } catch (error) {
+        // Skip rooms that don't exist
+      }
+    }
+    
+    console.log("❌ No joinable rooms found for your address:", currentAccount);
+    return null;
+  } catch (error) {
+    console.error("❌ Error finding joinable room:", error);
+    return null;
+  }
+}
+
 // Function to check what room numbers actually exist
 async function checkExistingRooms() {
   try {
@@ -2947,7 +3000,20 @@ async function joinRoomManually() {
     // Vérifier les informations de la room sur la blockchain
     const room = await getRoomInfo(roomIdInput);
     if (!room || !room.playerA || room.playerA === "0x0000000000000000000000000000000000000000") {
-      alert("❌ Room introuvable sur la blockchain après plusieurs tentatives. Le Room ID pourrait être incorrect ou il y a un problème de synchronisation blockchain.");
+      console.log("❌ Specified room not found. Looking for alternative rooms you can join...");
+      
+      // Try to find a room you can actually join
+      const joinableRoomId = await findJoinableRoom();
+      if (joinableRoomId) {
+        const suggest = confirm(`❌ Room ${roomIdInput} not found!\n\n✅ But I found Room ${joinableRoomId} that you can join!\n\nWould you like to join Room ${joinableRoomId} instead?`);
+        if (suggest) {
+          // Recursively call this function with the suggested room
+          document.getElementById('roomIdInput').value = joinableRoomId;
+          return joinRoomManually();
+        }
+      } else {
+        alert("❌ Room introuvable sur la blockchain après plusieurs tentatives. Le Room ID pourrait être incorrect ou il y a un problème de synchronisation blockchain.\n\nNo alternative rooms found for your address.");
+      }
       return;
     }
 
