@@ -1263,39 +1263,32 @@ cashPongContract.events.PlayerJoined()
         console.log(`🔍 [DEBUG] Looking for PlayerB: ${room.playerB}`);
         console.log(`🔍 [DEBUG] Available users:`, Object.keys(users));
         
-        // Use the existing users object to find sockets
-        Object.values(users).forEach((user, index) => {
-          console.log(`🔍 [DEBUG] User ${index}:`, {
-            username: user.username,
-            ethAddress: user.ethAddress,
-            socketId: user.socketId
+        // Use the existing users object to find sockets (FIXED - users stores socket objects directly)
+        Object.values(users).forEach((socket, index) => {
+          console.log(`🔍 [DEBUG] Socket ${index}:`, {
+            username: socket.username,
+            ethAddress: socket.ethAddress,
+            socketId: socket.id
           });
           
-          if (user && user.ethAddress) {
-            if (user.ethAddress.toLowerCase() === room.playerA) {
-              playerASockets.push(user);
-              console.log(`✅ [DEBUG] Found PlayerA match: ${user.username} (${user.ethAddress})`);
+          if (socket && socket.ethAddress) {
+            if (socket.ethAddress.toLowerCase() === room.playerA) {
+              playerASockets.push(socket);
+              console.log(`✅ [DEBUG] Found PlayerA match: ${socket.username} (${socket.ethAddress})`);
             }
-            if (user.ethAddress.toLowerCase() === room.playerB) {
-              playerBSockets.push(user);
-              console.log(`✅ [DEBUG] Found PlayerB match: ${user.username} (${user.ethAddress})`);
+            if (socket.ethAddress.toLowerCase() === room.playerB) {
+              playerBSockets.push(socket);
+              console.log(`✅ [DEBUG] Found PlayerB match: ${socket.username} (${socket.ethAddress})`);
             }
           }
         });
         
         console.log(`🔍 Found ${playerASockets.length} sockets for PlayerA and ${playerBSockets.length} sockets for PlayerB`);
         
-        // Join both players to the Socket.IO room
+        // Join both players to the Socket.IO room (FIXED - objects are already sockets)
         if (playerASockets.length > 0 && playerBSockets.length > 0) {
-          const playerAUser = playerASockets[0];
-          const playerBUser = playerBSockets[0];
-          
-          // Get actual socket objects from the users
-          const playerASocketId = playerAUser.socketId || playerAUser.id;
-          const playerBSocketId = playerBUser.socketId || playerBUser.id;
-          
-          const playerASocket = io.sockets.sockets.get(playerASocketId);
-          const playerBSocket = io.sockets.sockets.get(playerBSocketId);
+          const playerASocket = playerASockets[0];
+          const playerBSocket = playerBSockets[0];
           
           if (playerASocket && playerBSocket) {
             // Join both players to the room
@@ -1874,16 +1867,15 @@ socket.on("startServerGame", (data) => {
     // Create game instance with server-side physics
     const gameInstance = gameServer.createGameInstance(roomId, room.playerA, room.playerB);
     
-    // 🔥 FIND AND JOIN BOTH PLAYERS TO SOCKET.IO ROOM FOR BROADCASTING
+    // 🔥 FIND AND JOIN BOTH PLAYERS TO SOCKET.IO ROOM FOR BROADCASTING (FIXED)
     console.log(`🔍 [GAME START] Finding sockets for both players...`);
-    Object.values(users).forEach(user => {
-      if (user && user.socketId && user.ethAddress) {
-        const userAddress = user.ethAddress.toLowerCase();
+    Object.values(users).forEach(userSocket => {
+      if (userSocket && userSocket.id && userSocket.ethAddress) {
+        const userAddress = userSocket.ethAddress.toLowerCase();
         if (userAddress === room.playerA || userAddress === room.playerB) {
-          const userSocket = io.sockets.sockets.get(user.socketId);
-          if (userSocket && userSocket.id !== socket.id) { // Don't double-join requesting socket
+          if (userSocket.id !== socket.id) { // Don't double-join requesting socket
             userSocket.join(roomId);
-            console.log(`✅ [GAME START] User ${user.username} (${userAddress}) joined room ${roomId}`);
+            console.log(`✅ [GAME START] User ${userSocket.username} (${userAddress}) joined room ${roomId}`);
           }
         }
       }
