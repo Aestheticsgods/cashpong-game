@@ -1257,17 +1257,19 @@ cashPongContract.events.PlayerJoined()
         console.log(`${'='.repeat(60)}`);
         
         // 🔥 AUTOMATICALLY JOIN PLAYERS TO SOCKET.IO ROOM AND START GAME
-        // Find connected sockets with matching player addresses
-        const sockets = await io.fetchSockets();
+        // Find connected sockets with matching player addresses (FIXED - NO AWAIT)
         let playerASockets = [];
         let playerBSockets = [];
         
-        sockets.forEach(socket => {
-          if (socket.playerAddress && socket.playerAddress.toLowerCase() === room.playerA) {
-            playerASockets.push(socket);
-          }
-          if (socket.playerAddress && socket.playerAddress.toLowerCase() === room.playerB) {
-            playerBSockets.push(socket);
+        // Use the existing users object to find sockets
+        Object.values(users).forEach(userSocket => {
+          if (userSocket && userSocket.ethAddress) {
+            if (userSocket.ethAddress.toLowerCase() === room.playerA) {
+              playerASockets.push(userSocket);
+            }
+            if (userSocket.ethAddress.toLowerCase() === room.playerB) {
+              playerBSockets.push(userSocket);
+            }
           }
         });
         
@@ -1278,9 +1280,9 @@ cashPongContract.events.PlayerJoined()
           const playerASocket = playerASockets[0];
           const playerBSocket = playerBSockets[0];
           
-          // Join both players to the room
-          await playerASocket.join(roomId);
-          await playerBSocket.join(roomId);
+          // Join both players to the room (FIXED - NO AWAIT)
+          playerASocket.join(roomId);
+          playerBSocket.join(roomId);
           
           console.log(`✅ Both players automatically joined Socket.IO room ${roomId}`);
           
@@ -2003,7 +2005,8 @@ socket.on("winningsReceived", (data) => {
 
 });
 
-});
+// Committing and pushing syntax error fixes to VPS
+console.log("🚀 Server ready with all syntax fixes applied");
 
 // VPS Configuration
 const PORT = process.env.PORT || 3000;
