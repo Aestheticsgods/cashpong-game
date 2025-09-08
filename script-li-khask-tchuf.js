@@ -2906,7 +2906,7 @@ async function checkExistingRooms() {
     console.log(`👤 Looking for rooms for: ${currentAccount}`);
     
     // Get RoomCreated events from recent blocks
-    const currentBlock = await web3.eth.getBlockNumber();
+    const currentBlock = Number(await web3.eth.getBlockNumber());
     const fromBlock = Math.max(currentBlock - 10000, 0); // Last 10000 blocks
     
     console.log(`📊 Scanning events from block ${fromBlock} to ${currentBlock}`);
