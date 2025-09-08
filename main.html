@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cashpong</title>
   <link rel="stylesheet" href="./styles.css">
-  <link rel="icon" type="image/png" sizes="32x32" href="../hadi.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="../hadi.png">
-  <link rel="icon" type="image/x-icon" href="../favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/hadi.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/hadi.png">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <style>
     body {
       background: linear-gradient(135deg, #1a2233 0%, #2d3748 50%, #1a2233 100%);
@@ -288,8 +288,19 @@
     </div>
 
     <div style="margin-top: 30px;">
+      <button class="play-button" onclick="startMultiplayerGame()" id="multiplayerButton">🎮 MULTIPLAYER MODE</button>
+      <button class="secondary-button" onclick="startSoloGame()" id="soloButton">🎯 SOLO MODE</button>
       <button class="play-button" onclick="viewRules()" id="rulesButton">📋 RÈGLES DU JEU</button>
     </div>
+    
+    <!-- Network Info -->
+    <div class="network-info">
+      <div class="network-badge">Polygon Network</div>
+      <p id="networkDescription">Connectez votre portefeuille MetaMask pour commencer à jouer. Toutes les transactions sont traitées sur Polygon pour un jeu rapide et peu coûteux.</p>
+    </div>
+    
+    <!-- MetaMask Wallet Status -->
+    <div id="walletStatus" style="margin-top: 20px; font-size: 1.1em; color: #60f0ff;"></div>
   </div>
 
   <div class="footer">
