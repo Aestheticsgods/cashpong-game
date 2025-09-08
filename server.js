@@ -1256,6 +1256,53 @@ cashPongContract.events.PlayerJoined()
         console.log(`🚀 Room ${roomId} is ready for gameplay!`);
         console.log(`${'='.repeat(60)}`);
         
+        // 🔥 AUTOMATICALLY JOIN PLAYERS TO SOCKET.IO ROOM AND START GAME
+        // Find connected sockets with matching player addresses
+        const sockets = await io.fetchSockets();
+        let playerASockets = [];
+        let playerBSockets = [];
+        
+        sockets.forEach(socket => {
+          if (socket.playerAddress && socket.playerAddress.toLowerCase() === room.playerA) {
+            playerASockets.push(socket);
+          }
+          if (socket.playerAddress && socket.playerAddress.toLowerCase() === room.playerB) {
+            playerBSockets.push(socket);
+          }
+        });
+        
+        console.log(`🔍 Found ${playerASockets.length} sockets for PlayerA and ${playerBSockets.length} sockets for PlayerB`);
+        
+        // Join both players to the Socket.IO room
+        if (playerASockets.length > 0 && playerBSockets.length > 0) {
+          const playerASocket = playerASockets[0];
+          const playerBSocket = playerBSockets[0];
+          
+          // Join both players to the room
+          await playerASocket.join(roomId);
+          await playerBSocket.join(roomId);
+          
+          console.log(`✅ Both players automatically joined Socket.IO room ${roomId}`);
+          
+          // Update room with socket IDs
+          room.playerASocketId = playerASocket.id;
+          room.playerBSocketId = playerBSocket.id;
+          room.status = "waiting_for_start";
+          
+          // Notify both players they can start the game
+          io.to(roomId).emit("bothPlayersJoined", {
+            roomId: roomId,
+            playerA: room.playerA,
+            playerB: room.playerB,
+            betAmount: room.betAmount,
+            canStartGame: true
+          });
+          
+          console.log(`🎮 Game can now start for room ${roomId}!`);
+        } else {
+          console.log(`⚠️ Could not find connected sockets for both players in room ${roomId}`);
+        }
+        
         // Emit to all connected clients that the room is fully ready
         io.emit("roomFullyReady", { 
           roomId, 
@@ -1351,6 +1398,10 @@ function cleanupPreviousSocket(identifier) {
     });
     return; // Ne pas continuer si l'adresse ETH est invalide
   }
+  
+  // 🔥 REGISTER PLAYER ADDRESS ON SOCKET FOR AUTO-JOIN
+  socket.playerAddress = normalizedAddress;
+  console.log(`✅ Socket ${socket.id} registered with address: ${normalizedAddress}`);
 
   // Show what is finally used
   console.log(`[REGISTER] Final normalizedUsername: ${normalizedUsername}, normalizedAddress: ${normalizedAddress}`);
