@@ -226,16 +226,31 @@ function connectToSocketServer(username) {
     // Connect to production VPS server
     socket = io("http://72.60.70.13:3000");
 
-    socket.on("connect", () => {
+    socket.on("connect", async () => {
         console.log("🟢 Socket connecté : ", socket.id);
 
         window.currentUsername = username;
         window.opponentUsername = null;
         window.hasPlacedBet = false;
 
-        // Always send MetaMask address if available (only if already connected)
+        // 🔥 AUTOMATICALLY CONNECT METAMASK BEFORE REGISTRATION
         let ethAddressToSend = window.connectedWallet || "";
-        // Note: Removed automatic eth_accounts request to prevent RPC errors
+        
+        // If no wallet is connected, try to connect automatically
+        if (!ethAddressToSend) {
+            console.log("🔍 Aucun wallet connecté, tentative de connexion automatique...");
+            try {
+                const success = await connectWallet();
+                if (success && window.connectedWallet) {
+                    ethAddressToSend = window.connectedWallet;
+                    console.log("✅ MetaMask connecté automatiquement:", ethAddressToSend);
+                } else {
+                    console.warn("⚠️ Échec de la connexion automatique MetaMask");
+                }
+            } catch (error) {
+                console.warn("⚠️ Erreur lors de la connexion automatique MetaMask:", error);
+            }
+        }
 
         console.log(`[FRONTEND REGISTER] username: ${username}, ethAddress: ${ethAddressToSend}, role: ${window.playerRole || "player"}`);
         socket.emit("register", {
