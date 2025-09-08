@@ -3039,13 +3039,50 @@ async function joinRoomManually() {
 
     // First, check what the current room counter is
     console.log("🔍 Checking current room counter...");
+    let roomCounter;
+    let actualHighestRoom;
+    
     try {
-      const roomCounter = await cashPongContract.methods.roomCounter().call();
-      console.log(`📊 Current room counter: ${roomCounter} (highest room created so far)`);
+      // Get the contract's room counter (might be cached/outdated)
+      roomCounter = await cashPongContract.methods.roomCounter().call();
+      console.log(`📊 Contract room counter: ${roomCounter}`);
       
-      // If trying to join a room higher than counter, check if it was just created
+      // Also check recent events to find the actual highest room number
+      try {
+        console.log("🔍 Scanning recent events for actual highest room...");
+        const currentBlock = await web3.eth.getBlockNumber();
+        const fromBlock = Math.max(Number(currentBlock) - 100, 0); // Check last 100 blocks
+        
+        const allRoomEvents = await cashPongContract.getPastEvents('RoomCreated', {
+          fromBlock: fromBlock,
+          toBlock: 'latest'
+        });
+        
+        if (allRoomEvents.length > 0) {
+          // Find the highest room ID from events
+          const roomIds = allRoomEvents.map(event => parseInt(event.returnValues.roomId));
+          actualHighestRoom = Math.max(...roomIds);
+          console.log(`📊 Actual highest room from events: ${actualHighestRoom}`);
+          
+          // Use the higher value between contract counter and event scan
+          const effectiveCounter = Math.max(parseInt(roomCounter), actualHighestRoom);
+          console.log(`📊 Effective room counter: ${effectiveCounter} (contract: ${roomCounter}, events: ${actualHighestRoom})`);
+          roomCounter = effectiveCounter;
+        } else {
+          console.log("📊 No recent room events found, using contract counter");
+          actualHighestRoom = parseInt(roomCounter);
+        }
+      } catch (eventScanError) {
+        console.log(`⚠️ Could not scan events for actual room count: ${eventScanError.message}`);
+        console.log("📊 Using contract counter as fallback");
+        actualHighestRoom = parseInt(roomCounter);
+      }
+      
+      console.log(`📊 Final room counter: ${roomCounter} (highest room created so far)`);
+      
+      // If trying to join a room higher than our best known counter, check if it exists
       if (parseInt(roomIdInput) > parseInt(roomCounter)) {
-        console.log(`⚠️ Room ${roomIdInput} is higher than counter ${roomCounter} - checking if recently created...`);
+        console.log(`⚠️ Room ${roomIdInput} is higher than known counter ${roomCounter} - checking if recently created...`);
         
         // First try: Direct room check (most reliable)
         try {
