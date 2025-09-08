@@ -1259,13 +1259,13 @@ cashPongContract.events.PlayerJoined()
         let playerBSockets = [];
         
         // Use the existing users object to find sockets
-        Object.values(users).forEach(userSocket => {
-          if (userSocket && userSocket.ethAddress) {
-            if (userSocket.ethAddress.toLowerCase() === room.playerA) {
-              playerASockets.push(userSocket);
+        Object.values(users).forEach(user => {
+          if (user && user.ethAddress) {
+            if (user.ethAddress.toLowerCase() === room.playerA) {
+              playerASockets.push(user);
             }
-            if (userSocket.ethAddress.toLowerCase() === room.playerB) {
-              playerBSockets.push(userSocket);
+            if (user.ethAddress.toLowerCase() === room.playerB) {
+              playerBSockets.push(user);
             }
           }
         });
@@ -1274,32 +1274,43 @@ cashPongContract.events.PlayerJoined()
         
         // Join both players to the Socket.IO room
         if (playerASockets.length > 0 && playerBSockets.length > 0) {
-          const playerASocket = playerASockets[0];
-          const playerBSocket = playerBSockets[0];
+          const playerAUser = playerASockets[0];
+          const playerBUser = playerBSockets[0];
           
-          // Join both players to the room (FIXED - NO AWAIT)
-          playerASocket.join(roomId);
-          playerBSocket.join(roomId);
+          // Get actual socket objects from the users
+          const playerASocketId = playerAUser.socketId || playerAUser.id;
+          const playerBSocketId = playerBUser.socketId || playerBUser.id;
           
-          console.log(`✅ Both players automatically joined Socket.IO room ${roomId}`);
+          const playerASocket = io.sockets.sockets.get(playerASocketId);
+          const playerBSocket = io.sockets.sockets.get(playerBSocketId);
           
-          // Update room with socket IDs
-          room.playerASocketId = playerASocket.id;
-          room.playerBSocketId = playerBSocket.id;
-          room.status = "waiting_for_start";
-          
-          // Notify both players they can start the game
-          io.to(roomId).emit("bothPlayersJoined", {
-            roomId: roomId,
-            playerA: room.playerA,
-            playerB: room.playerB,
-            betAmount: room.betAmount,
-            canStartGame: true
-          });
-          
-          console.log(`🎮 Game can now start for room ${roomId}!`);
+          if (playerASocket && playerBSocket) {
+            // Join both players to the room
+            playerASocket.join(roomId);
+            playerBSocket.join(roomId);
+            
+            console.log(`✅ Both players automatically joined Socket.IO room ${roomId}`);
+            
+            // Update room with socket IDs
+            room.playerASocketId = playerASocketId;
+            room.playerBSocketId = playerBSocketId;
+            room.status = "waiting_for_start";
+            
+            // Notify both players they can start the game
+            io.to(roomId).emit("bothPlayersJoined", {
+              roomId: roomId,
+              playerA: room.playerA,
+              playerB: room.playerB,
+              betAmount: room.betAmount,
+              canStartGame: true
+            });
+            
+            console.log(`🎮 Game can now start for room ${roomId}!`);
+          } else {
+            console.log(`⚠️ Could not find active socket connections for both players`);
+          }
         } else {
-          console.log(`⚠️ Could not find connected sockets for both players in room ${roomId}`);
+          console.log(`⚠️ Could not find connected users for both players in room ${roomId}`);
         }
         
         // Emit to all connected clients that the room is fully ready
