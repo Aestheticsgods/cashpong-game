@@ -3,20 +3,606 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cashpong Main Page</title>
-  <link rel="stylesheet" href="styles.css">
-  <link rel="icon" type="image/png" sizes="32x32" href="hadi.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="hadi.png">
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <title>Cashpong</title>
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="icon" type="image/png" sizes="32x32" href="../hadi.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../hadi.png">
+  <link rel="icon" type="image/x-icon" href="../favicon.ico">
+  <style>
+    body {
+      background: linear-gradient(135deg, #1a2233 0%, #2d3748 50%, #1a2233 100%);
+      color: #e6f7ff;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+  overflow: auto;
+      position: relative;
+    }
+
+    .background-animation {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      background: 
+        radial-gradient(circle at 20% 50%, rgba(96,240,255,0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(96,240,255,0.05) 0%, transparent 50%),
+        radial-gradient(circle at 40% 80%, rgba(96,240,255,0.08) 0%, transparent 50%);
+      animation: float 8s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-20px) rotate(2deg); }
+    }
+
+    .game-container {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      max-width: 800px;
+      padding: 40px 20px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+      border-radius: 24px;
+      border: 2px solid var(--glass-border);
+      box-shadow: 
+        0 25px 80px rgba(2,6,23,0.8),
+        inset 0 1px 0 rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+    }
+
+    .logo {
+      font-size: 6em;
+      font-weight: bold;
+      background: linear-gradient(135deg, var(--accent), #40e0ff, #20d0ff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 20px;
+      text-shadow: 0 4px 20px rgba(96,240,255,0.3);
+      letter-spacing: -2px;
+      display: block;
+    }
+
+    .tagline {
+      font-size: 1.3em;
+      color: var(--muted);
+      margin-bottom: 30px;
+      font-weight: 300;
+    }
+
+    .description {
+      font-size: 1.1em;
+      color: #c8ddef;
+      margin-bottom: 40px;
+      line-height: 1.6;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .feature {
+      padding: 20px;
+      background: rgba(255,255,255,0.02);
+      border-radius: 12px;
+      border: 1px solid rgba(96,240,255,0.2);
+    }
+
+    .feature-icon {
+      font-size: 2em;
+      margin-bottom: 10px;
+    }
+
+    .feature h3 {
+      color: var(--accent);
+      margin-bottom: 8px;
+      font-size: 1.1em;
+    }
+
+    .feature p {
+      color: var(--muted);
+      font-size: 0.9em;
+      margin: 0;
+    }
+
+    .play-button {
+      background: linear-gradient(135deg, var(--accent), #40e0ff);
+      color: #1a2233;
+      border: none;
+      padding: 18px 40px;
+      font-size: 1.3em;
+      font-weight: bold;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 
+        0 10px 30px rgba(96,240,255,0.3),
+        inset 0 1px 0 rgba(255,255,255,0.3);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin: 20px 10px;
+    }
+
+    .play-button:hover {
+      transform: translateY(-3px);
+      box-shadow: 
+        0 15px 40px rgba(96,240,255,0.4),
+        inset 0 1px 0 rgba(255,255,255,0.3);
+    }
+
+    .secondary-button {
+      background: transparent;
+      color: var(--accent);
+      border: 2px solid var(--accent);
+      padding: 16px 35px;
+      font-size: 1.1em;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin: 20px 10px;
+    }
+
+    .secondary-button:hover {
+      background: var(--accent);
+      color: #1a2233;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(96,240,255,0.3);
+    }
+
+    .footer {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: var(--muted);
+      font-size: 0.9em;
+      z-index: 2;
+    }
+
+    .network-info {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 15px;
+      margin-top: 30px;
+      font-size: 0.9em;
+    }
+
+    .network-info .network-badge {
+      background: linear-gradient(135deg, #8247e5, #9c4dcc);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 0.8em;
+      display: inline-block;
+      margin-bottom: 8px;
+    }
+
+    @media (max-width: 768px) {
+      .logo {
+        font-size: 4.5em;
+      }
+      
+      .game-container {
+        margin: 20px;
+        padding: 30px 20px;
+      }
+      
+      .features {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .features {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 <body>
-  <div style="text-align:center; margin-top:100px;">
-    <img src="hadi.png" alt="Logo" style="height: 120px; width: auto; margin-bottom: 10px;">
-    <h1>Welcome to Cashpong!</h1>
-    <p>This is the main landing page for your project.</p>
-    <a href="/game" class="play-button">Go to Game</a>
-    <a href="/rules" class="play-button">View Rules</a>
-    <a href="/solo-game" class="secondary-button">Solo Mode</a>
+  <div class="background-animation"></div>
+  
+  <!-- Language Toggle Button -->
+  <div id="languageToggle" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
+    <button onclick="toggleLanguage()" style="
+      background: rgba(96,240,255,0.2);
+      color: #60f0ff;
+      border: 1px solid #60f0ff;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    " onmouseover="this.style.background='#60f0ff'; this.style.color='#1a2233'" 
+       onmouseout="this.style.background='rgba(96,240,255,0.2)'; this.style.color='#60f0ff'">
+      <span id="flagIcon">🇺🇸</span>
+      <span id="langText">EN</span>
+    </button>
+  </div>
+  
+  <div class="game-container">
+    <div class="logo">
+      <img src="hadi.png" alt="Logo" style="height: 120px; width: auto; margin-bottom: 10px;">
+    </div>
+    <div class="tagline game-subtitle">LE JEU DE PONG ULTIME</div>
+    <div class="description game-description">
+      Jouez au pong avec des enjeux réels ! Défiez vos amis dans des matchs compétitifs avec des mises en cryptomonnaie.
+    </div>
+
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">🎮</div>
+        <h3>Multijoueur</h3>
+        <p class="feature-text">Multijoueur en temps réel</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">💰</div>
+        <h3>Crypto</h3>
+        <p class="feature-text">Mises en cryptomonnaie</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🔒</div>
+        <h3>Sécurisé</h3>
+        <p class="feature-text">Blockchain sécurisée</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">⚡</div>
+        <h3>Instantané</h3>
+        <p class="feature-text">Paiements instantanés</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🌍</div>
+        <h3>Global</h3>
+        <p class="feature-text">Joueurs du monde entier</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🏆</div>
+        <h3>Compétitif</h3>
+        <p class="feature-text">Tournois et classements</p>
+      </div>
+    </div>
+
+    <div style="margin-top: 30px;">
+      <button class="play-button" onclick="viewRules()" id="rulesButton">📋 RÈGLES DU JEU</button>
+    </div>
+  </div>
+
+  <div class="footer">
+    Powered by Polygon Blockchain • MetaMask Required
+  </div>
+
+  <script>
+    // Language data
+    const languages = {
+      fr: {
+        title: "🏓",
+        subtitle: "LE JEU DE PONG ULTIME",
+        description: "Jouez au pong avec des enjeux réels ! Défiez vos amis dans des matchs compétitifs avec des mises en cryptomonnaie.",
+        multiplayerButton: "🎮 MULTIPLAYER MODE",
+        soloButton: "🎯 SOLO MODE",
+        rulesButton: "📋 RÈGLES DU JEU",
+        networkDescription: "Connectez votre portefeuille MetaMask pour commencer à jouer. Toutes les transactions sont traitées sur Polygon pour un jeu rapide et peu coûteux.",
+        walletChecking: "🔍 Vérification de MetaMask...",
+        walletDetected: "✅ MetaMask détecté - Prêt à jouer !",
+        walletConnected: "✅ Connecté :",
+        walletDetectedNotConnected: "🔌 MetaMask détecté - Cliquez sur Jouer pour vous connecter",
+        walletNotFound: "❌ MetaMask non trouvé - Veuillez installer MetaMask",
+        installMetamask: "📥 Installer MetaMask",
+        features: {
+          realTime: "Multijoueur en temps réel",
+          crypto: "Mises en cryptomonnaie", 
+          secure: "Blockchain sécurisée",
+          instant: "Paiements instantanés",
+          global: "Joueurs du monde entier",
+          competitive: "Tournois et classements"
+        },
+        featureTitles: {
+          multiplayer: "Multijoueur",
+          crypto: "Crypto",
+          secure: "Sécurisé",
+          instant: "Instantané",
+          global: "Global",
+          competitive: "Compétitif"
+        },
+        footer: "Propulsé par la Blockchain Polygon • MetaMask Requis"
+      },
+      en: {
+        title: "🏓",
+        subtitle: "THE ULTIMATE PONG GAME",
+        description: "Play pong with real stakes! Challenge your friends in competitive matches with cryptocurrency wagers.",
+        multiplayerButton: "🎮 MULTIPLAYER MODE",
+        soloButton: "🎯 SOLO MODE",
+        rulesButton: "📋 GAME RULES",
+        networkDescription: "Connect your MetaMask wallet to start playing. All transactions are processed on Polygon for fast, low-cost gaming.",
+        walletChecking: "🔍 Checking MetaMask...",
+        walletDetected: "✅ MetaMask detected - Ready to play!",
+        walletConnected: "✅ Connected:",
+        walletDetectedNotConnected: "🔌 MetaMask detected - Click Play to connect",
+        walletNotFound: "❌ MetaMask not found - Please install MetaMask",
+        installMetamask: "📥 Install MetaMask",
+        features: {
+          realTime: "Real-time Multiplayer",
+          crypto: "Cryptocurrency Wagers",
+          secure: "Secure Blockchain", 
+          instant: "Instant Payments",
+          global: "Worldwide Players",
+          competitive: "Tournaments & Rankings"
+        },
+        featureTitles: {
+          multiplayer: "Multiplayer",
+          crypto: "Crypto",
+          secure: "Secure",
+          instant: "Instant",
+          global: "Global",
+          competitive: "Competitive"
+        },
+        footer: "Powered by Polygon Blockchain • MetaMask Required"
+      }
+    };
+
+    let currentLanguage = 'fr';
+
+    function toggleLanguage() {
+      currentLanguage = currentLanguage === 'fr' ? 'en' : 'fr';
+      updateLanguage();
+      localStorage.setItem('gameLanguage', currentLanguage);
+    }
+
+    function updateLanguage() {
+      const lang = languages[currentLanguage];
+      
+      // Update flag and language indicator
+      document.getElementById('flagIcon').textContent = currentLanguage === 'fr' ? '🇺🇸' : '🇫🇷';
+      document.getElementById('langText').textContent = currentLanguage === 'fr' ? 'EN' : 'FR';
+      
+      // Update main content
+      document.querySelector('.game-subtitle').textContent = lang.subtitle;
+      document.querySelector('.game-description').textContent = lang.description;
+      document.getElementById('multiplayerButton').textContent = lang.multiplayerButton;
+      document.getElementById('soloButton').textContent = lang.soloButton;
+      document.getElementById('rulesButton').textContent = lang.rulesButton;
+      document.getElementById('networkDescription').textContent = lang.networkDescription;
+      
+      // Update features
+      const featureTexts = document.querySelectorAll('.feature-text');
+      const featureKeys = Object.keys(lang.features);
+      featureTexts.forEach((text, index) => {
+        if (featureKeys[index]) {
+          text.textContent = lang.features[featureKeys[index]];
+        }
+      });
+      
+      // Update feature titles
+      const featureTitles = document.querySelectorAll('.feature h3');
+      const titleKeys = Object.keys(lang.featureTitles);
+      featureTitles.forEach((title, index) => {
+        if (titleKeys[index]) {
+          title.textContent = lang.featureTitles[titleKeys[index]];
+        }
+      });
+      
+      // Update footer
+      document.querySelector('.footer').textContent = lang.footer;
+      
+      // Update MetaMask status
+      checkMetaMask();
+    }
+
+    function updateMetaMaskStatus() {
+      const lang = languages[currentLanguage];
+      const walletStatus = document.getElementById('walletStatus');
+      const multiplayerBtn = document.getElementById('multiplayerButton');
+
+      if (typeof window.ethereum !== 'undefined') {
+        walletStatus.innerHTML = lang.walletDetected;
+        walletStatus.style.color = '#4ade80';
+        
+        // Check if already connected
+        window.ethereum.request({ method: 'eth_accounts' })
+          .then(accounts => {
+            if (accounts.length > 0) {
+              walletStatus.innerHTML = `${lang.walletConnected} ${accounts[0].substring(0, 8)}...`;
+              multiplayerBtn.innerHTML = lang.multiplayerButton;
+            } else {
+              walletStatus.innerHTML = lang.walletDetectedNotConnected;
+              walletStatus.style.color = '#60f0ff';
+            }
+          })
+          .catch(err => {
+            console.log('Error checking accounts:', err);
+          });
+      } else {
+        walletStatus.innerHTML = lang.walletNotFound;
+        walletStatus.style.color = '#ef4444';
+        multiplayerBtn.innerHTML = lang.installMetamask;
+        multiplayerBtn.onclick = function() {
+          window.open('https://metamask.io/', '_blank');
+        };
+      }
+    }
+
+    // Initialize language from localStorage or default to French
+    function initLanguage() {
+      const savedLanguage = localStorage.getItem('gameLanguage');
+      if (savedLanguage && languages[savedLanguage]) {
+        currentLanguage = savedLanguage;
+      }
+      updateLanguage();
+    }
+
+    function startGame() {
+      // Add a smooth transition effect
+      document.body.style.transition = 'opacity 0.3s ease';
+      document.body.style.opacity = '0.5';
+      
+      setTimeout(() => {
+        window.location.href = '/game';
+      }, 300);
+    }
+
+    function startMultiplayerGame() {
+      // Add a smooth transition effect
+      document.body.style.transition = 'opacity 0.3s ease';
+      document.body.style.opacity = '0.5';
+      
+      setTimeout(() => {
+        window.location.href = '/game'; // Current multiplayer game page
+      }, 300);
+    }
+
+    function startSoloGame() {
+      // Add a smooth transition effect
+      document.body.style.transition = 'opacity 0.3s ease';
+      document.body.style.opacity = '0.5';
+      
+      setTimeout(() => {
+        // Redirect to solo game page (to be developed)
+        window.location.href = '/solo-game';
+      }, 300);
+    }
+
+    function viewRules() {
+      // Add a smooth transition effect
+      document.body.style.transition = 'opacity 0.3s ease';
+      document.body.style.opacity = '0.5';
+      
+      setTimeout(() => {
+        window.location.href = '/rules';
+      }, 300);
+    }
+
+    // Add some interactive effects
+    document.addEventListener('DOMContentLoaded', function() {
+      const features = document.querySelectorAll('.feature');
+      features.forEach((feature, index) => {
+        feature.style.animationDelay = `${index * 0.1}s`;
+        feature.style.animation = 'fadeInUp 0.6s ease forwards';
+      });
+
+      // Add floating animation to features on hover
+      features.forEach(feature => {
+        feature.addEventListener('mouseenter', function() {
+          this.style.transform = 'translateY(-5px)';
+          this.style.transition = 'transform 0.3s ease';
+        });
+
+        feature.addEventListener('mouseleave', function() {
+          this.style.transform = 'translateY(0)';
+        });
+      });
+
+      // Add particle effect background
+      createParticles();
+
+      // Check MetaMask status
+      checkMetaMask();
+      
+      // Initialize language
+      initLanguage();
+    });
+
+    // Check MetaMask availability and connection status
+    function checkMetaMask() {
+      updateMetaMaskStatus();
+    }
+
+    // Create floating particles for background effect
+    function createParticles() {
+      const container = document.querySelector('.background-animation');
+      
+      for (let i = 0; i < 20; i++) {
+        const particle = document.createElement('div');
+        particle.style.position = 'absolute';
+        particle.style.width = Math.random() * 4 + 2 + 'px';
+        particle.style.height = particle.style.width;
+        particle.style.background = 'rgba(96, 240, 255, 0.3)';
+        particle.style.borderRadius = '50%';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.top = Math.random() * 100 + '%';
+        particle.style.animation = `floatParticle ${Math.random() * 10 + 10}s linear infinite`;
+        particle.style.animationDelay = Math.random() * 10 + 's';
+        
+        container.appendChild(particle);
+      }
+    }
+
+    // Add CSS for fade in animation and particles
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      
+      @keyframes floatParticle {
+        0% {
+          transform: translateY(100vh) rotate(0deg);
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        90% {
+          opacity: 1;
+        }
+        100% {
+          transform: translateY(-100vh) rotate(360deg);
+          opacity: 0;
+        }
+      }
+      
+      .feature {
+        opacity: 0;
+      }
+      
+      .play-button:active {
+        transform: translateY(-1px) scale(0.98);
+      }
+      
+      .secondary-button:active {
+        transform: translateY(-1px) scale(0.98);
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
+  
+  <!-- Copyright Footer -->
+  <div style="
+    position: fixed; 
+    bottom: 0; 
+    left: 0; 
+    right: 0; 
+    background: rgba(26, 34, 51, 0.9); 
+    color: #60f0ff; 
+    text-align: center; 
+    padding: 8px 0; 
+    font-size: 12px; 
+    border-top: 1px solid rgba(96, 240, 255, 0.2);
+    z-index: 999;
+  ">
+    © 2025 Cashpong. All rights reserved. | Powered by Blockchain Technology
   </div>
 </body>
 </html>
