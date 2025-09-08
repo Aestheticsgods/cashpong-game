@@ -2979,22 +2979,119 @@ async function checkExistingRooms() {
 
 async function joinRoomManually() {
   const roomIdInput = document.getElementById("roomIdToJoin").value.trim();
-
-  // Validation des entrées
-  if (!roomIdInput) {
-    alert("❌ Veuillez entrer un Room ID.");
+  
+  if (!roomIdInput || isNaN(roomIdInput) || parseInt(roomIdInput) <= 0) {
+    alert("Please enter a valid room ID (positive number)");
     return;
   }
-
-  if (!web3) {
-    alert("❌ Web3 non initialisé. Connectez MetaMask d'abord.");
-    return;
+  
+  console.log(`🎯 NEW SYNC: Attempting to join room ${roomIdInput}...`);
+  
+  try {
+    await ensurePolygonNetwork();
+    
+    // Check if we have fresh server data
+    if (serverRoomState.lastUpdate === 0 || (Date.now() - serverRoomState.lastUpdate) > 30000) {
+      console.log("🔄 Server data is stale or missing, requesting fresh data...");
+      
+      if (window.socket) {
+        window.socket.emit("requestRoomState", {
+          playerAddress: connectedWallet
+        });
+        
+        // Wait briefly for server response
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    const roomIdToJoin = parseInt(roomIdInput);
+    
+    // Method 1: Try to find room in server data (most reliable)
+    let roomFromServer = serverRoomState.availableRooms.find(r => r.roomId === roomIdToJoin) ||
+                        serverRoomState.myRooms.find(r => r.roomId === roomIdToJoin);
+    
+    if (roomFromServer) {
+      console.log("✅ Room found in server data, using server sync method");
+      await joinRoomFromServer(roomIdToJoin);
+      return;
+    }
+    
+    // Method 2: Direct blockchain check as fallback
+    console.log("⚠️ Room not in server data, trying direct blockchain check...");
+    
+    const roomData = await cashPongContract.methods.getRoom(roomIdToJoin).call();
+    
+    if (!roomData.playerA || roomData.playerA === '0x0000000000000000000000000000000000000000') {
+      let message = `❌ Room ${roomIdToJoin} not found.\n\n`;
+      
+      if (serverRoomState.highestRoom > 0) {
+        message += `Server shows highest room: ${serverRoomState.highestRoom}\n\n`;
+        
+        if (serverRoomState.availableRooms.length > 0) {
+          message += "Available rooms:\n";
+          serverRoomState.availableRooms.slice(0, 3).forEach(room => {
+            message += `• Room ${room.roomId} (${room.betAmountEth} ETH)\n`;
+          });
+        }
+      }
+      
+      const storedRoomId = localStorage.getItem("currentRoomId");
+      if (storedRoomId && storedRoomId !== roomIdInput) {
+        message += `\n💡 You have Room ${storedRoomId} from previous session.`;
+      }
+      
+      alert(message);
+      return;
+    }
+    
+    if (roomData.playerBJoined) {
+      alert("❌ This room is already full.");
+      return;
+    }
+    
+    // Room exists - proceed with join
+    const betAmountEth = web3.utils.fromWei(roomData.betAmount, "ether");
+    const confirmJoin = confirm(`Join Room ${roomIdToJoin}?\n\nBet Amount: ${betAmountEth} ETH`);
+    if (!confirmJoin) return;
+    
+    alert("⏳ Sending bet to join room...");
+    
+    await cashPongContract.methods.joinRoom(roomIdToJoin).send({
+      from: connectedWallet,
+      value: roomData.betAmount,
+      gas: 300000,
+      gasPrice: web3.utils.toWei('50', 'gwei')
+    });
+    
+    // Store and update
+    localStorage.setItem("currentRoomId", roomIdToJoin);
+    localStorage.setItem("role", "guest");
+    isRoomCreator = false;
+    updatePlayButtonForRole();
+    window.currentRoomId = roomIdToJoin;
+    window.opponentEthAddress = roomData.playerA;
+    
+    alert("✅ Room joined successfully!");
+    
+    // Notify server
+    if (window.socket) {
+      window.socket.emit("playerJoinedRoom", {
+        roomId: roomIdToJoin.toString(),
+        playerAddress: connectedWallet
+      });
+    }
+    
+    // Update UI
+    document.getElementById("joinInfo").innerText = `🎮 Room ${roomIdToJoin} joined! Ready to play.`;
+    document.getElementById("playButton").style.display = "block";
+    document.getElementById("peerControls").style.display = "none";
+    document.getElementById("joinRoomControls").style.display = "none";
+    
+  } catch (error) {
+    console.error("❌ Error joining room:", error);
+    alert(`❌ Error joining room: ${error.message}`);
   }
-
-  if (!connectedWallet) {
-    alert("❌ Connectez votre wallet MetaMask d'abord.");
-    return;
-  }
+}
 
   try {
     // Vérifier que le contrat est bien initialisé
@@ -4101,45 +4198,181 @@ window.checkStoredRoom = async function() {
 };
 
 // Function to force refresh room counter and check recent rooms
-// Function to ask server about recently created rooms
-window.askServerForRecentRooms = function() {
-  console.log("🤖 Asking server for recently created rooms...");
+// 🚀 NEW REAL-TIME SYNC SYSTEM - Server as Single Source of Truth
+let serverRoomState = {
+  highestRoom: 0,
+  availableRooms: [],
+  myRooms: [],
+  lastUpdate: 0
+};
+
+// Real-time room state synchronization
+function initializeServerSync() {
+  if (!window.socket) return;
   
-  if (!window.socket) {
-    alert("❌ Not connected to server. Please refresh the page and try again.");
-    return;
-  }
+  console.log("🔄 Initializing real-time server synchronization...");
   
-  // Emit request to server
-  window.socket.emit("getRecentRooms", {
+  // Request initial room state from server
+  window.socket.emit("requestRoomState", {
     playerAddress: connectedWallet
   });
   
-  // Listen for response (one-time listener)
-  window.socket.once("recentRoomsResponse", (data) => {
-    console.log("📨 Server response for recent rooms:", data);
+  // Listen for real-time room updates
+  window.socket.on("roomStateUpdate", (data) => {
+    console.log("📡 Real-time room update from server:", data);
+    serverRoomState = {
+      highestRoom: data.highestRoom || 0,
+      availableRooms: data.availableRooms || [],
+      myRooms: data.myRooms || [],
+      lastUpdate: Date.now()
+    };
     
-    if (data.error) {
-      alert(`❌ Server error: ${data.error}`);
-      return;
-    }
-    
-    if (data.recentRooms && data.recentRooms.length > 0) {
-      let message = "🏠 Recently created rooms from server:\n\n";
-      data.recentRooms.forEach(room => {
-        message += `Room ${room.roomId}: Created by ${room.creator.substring(0, 10)}...\n`;
-      });
-      message += "\n💡 Try joining one of these room numbers!";
-      alert(message);
-    } else {
-      alert("📭 No recent rooms found on server.");
-    }
+    // Update UI with fresh data
+    updateRoomUI();
   });
   
-  // Timeout after 5 seconds
-  setTimeout(() => {
-    alert("⏰ Server didn't respond within 5 seconds. Try again or refresh the page.");
-  }, 5000);
+  // Listen for new room notifications
+  window.socket.on("newRoomCreated", (roomData) => {
+    console.log("🆕 New room created notification:", roomData);
+    
+    // Update local state
+    serverRoomState.highestRoom = Math.max(serverRoomState.highestRoom, roomData.roomId);
+    serverRoomState.availableRooms.push(roomData);
+    serverRoomState.lastUpdate = Date.now();
+    
+    // Show notification to user
+    if (roomData.playerB === connectedWallet) {
+      alert(`🎮 You've been invited to join Room ${roomData.roomId}!\n\nCreated by: ${roomData.playerA.substring(0, 10)}...\nBet Amount: ${roomData.betAmountEth} ETH`);
+    }
+    
+    updateRoomUI();
+  });
+  
+  // Listen for room join notifications
+  window.socket.on("roomJoined", (data) => {
+    console.log("✅ Room joined notification:", data);
+    
+    // Remove from available rooms
+    serverRoomState.availableRooms = serverRoomState.availableRooms.filter(
+      room => room.roomId !== data.roomId
+    );
+    
+    updateRoomUI();
+  });
+}
+
+// Update UI with server room data
+function updateRoomUI() {
+  const roomInfo = document.getElementById("serverRoomInfo");
+  if (!roomInfo) {
+    // Create room info display
+    const infoDiv = document.createElement("div");
+    infoDiv.id = "serverRoomInfo";
+    infoDiv.style.cssText = `
+      background: #2a2a2a;
+      border: 1px solid #00ff00;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 10px 0;
+      color: #00ff00;
+      font-family: monospace;
+    `;
+    
+    const peerControls = document.getElementById("peerControls");
+    if (peerControls) {
+      peerControls.parentNode.insertBefore(infoDiv, peerControls);
+    }
+  }
+  
+  const roomDiv = document.getElementById("serverRoomInfo");
+  if (roomDiv) {
+    let html = `
+      <h4>� Real-Time Server Data (Updated: ${new Date(serverRoomState.lastUpdate).toLocaleTimeString()})</h4>
+      <p><strong>Highest Room:</strong> ${serverRoomState.highestRoom}</p>
+    `;
+    
+    if (serverRoomState.availableRooms.length > 0) {
+      html += `<h5>🏠 Available Rooms:</h5><ul>`;
+      serverRoomState.availableRooms.forEach(room => {
+        html += `<li onclick="joinRoomFromServer(${room.roomId})" style="cursor: pointer; text-decoration: underline;">
+          Room ${room.roomId} - ${room.betAmountEth} ETH - Creator: ${room.playerA.substring(0, 10)}...
+        </li>`;
+      });
+      html += `</ul>`;
+    }
+    
+    if (serverRoomState.myRooms.length > 0) {
+      html += `<h5>👤 My Rooms:</h5><ul>`;
+      serverRoomState.myRooms.forEach(room => {
+        html += `<li onclick="joinRoomFromServer(${room.roomId})" style="cursor: pointer; text-decoration: underline;">
+          Room ${room.roomId} - ${room.betAmountEth} ETH - Status: ${room.status}
+        </li>`;
+      });
+      html += `</ul>`;
+    }
+    
+    roomDiv.innerHTML = html;
+  }
+}
+
+// Join room using server data (no blockchain queries needed)
+window.joinRoomFromServer = async function(roomId) {
+  console.log(`🎯 Joining room ${roomId} using server sync system...`);
+  
+  // Find room in server data
+  const room = serverRoomState.availableRooms.find(r => r.roomId === roomId) ||
+               serverRoomState.myRooms.find(r => r.roomId === roomId);
+  
+  if (!room) {
+    alert(`❌ Room ${roomId} not found in server data. Try refreshing.`);
+    return;
+  }
+  
+  try {
+    // Verify we're on correct network
+    await ensurePolygonNetwork();
+    
+    const confirmJoin = confirm(`Join Room ${roomId}?\n\nBet Amount: ${room.betAmountEth} ETH\nCreator: ${room.playerA.substring(0, 10)}...`);
+    if (!confirmJoin) return;
+    
+    alert("⏳ Sending bet to join room...");
+    
+    // Join room on blockchain using server data
+    await cashPongContract.methods.joinRoom(roomId).send({
+      from: connectedWallet,
+      value: room.betAmountWei,
+      gas: 300000,
+      gasPrice: web3.utils.toWei('50', 'gwei')
+    });
+    
+    // Store room info
+    localStorage.setItem("currentRoomId", roomId);
+    localStorage.setItem("role", "guest");
+    isRoomCreator = false;
+    updatePlayButtonForRole();
+    window.currentRoomId = roomId;
+    window.opponentEthAddress = room.playerA;
+    
+    // Notify server
+    if (window.socket) {
+      window.socket.emit("playerJoinedRoom", {
+        roomId: roomId.toString(),
+        playerAddress: connectedWallet
+      });
+    }
+    
+    alert("✅ Room joined successfully!");
+    
+    // Update UI
+    document.getElementById("joinInfo").innerText = `🎮 Room ${roomId} joined! Ready to play.`;
+    document.getElementById("playButton").style.display = "block";
+    document.getElementById("peerControls").style.display = "none";
+    document.getElementById("joinRoomControls").style.display = "none";
+    
+  } catch (error) {
+    console.error("❌ Error joining room:", error);
+    alert(`❌ Error joining room: ${error.message}`);
+  }
 };
 
 window.refreshRoomCounter = async function() {
