@@ -2075,6 +2075,29 @@ async function initWeb3() {
     await forcePolygonMainnet();
 
     web3 = new Web3(window.ethereum);
+    
+    // Only initialize Web3, don't request accounts automatically
+    console.log("✅ Web3 initialisé (sans connexion de compte)");
+    
+    return true;
+  } catch (error) {
+    console.error("❌ Erreur initialisation Web3 :", error);
+    return false;
+  }
+}
+
+// Separate function for connecting wallet (requesting accounts)
+async function connectWalletAndInitialize() {
+  if (typeof window.ethereum === "undefined") {
+    console.warn("🦊 MetaMask n'est pas installé");
+    return false;
+  }
+
+  try {
+    // Force Polygon Mainnet before connecting
+    await forcePolygonMainnet();
+
+    web3 = new Web3(window.ethereum);
     const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
     connectedWallet = accounts[0];
     // Use shortened wallet address as username for display
@@ -2109,6 +2132,9 @@ async function initWeb3() {
     return false;
   }
 }
+
+// Make function available globally
+window.connectWalletAndInitialize = connectWalletAndInitialize;
 
 function listenContractEvents(contract) {
   const eventsAvailable = Object.entries(contract.events || {});
@@ -3455,8 +3481,9 @@ window.onload = async function () {
   // Check MetaMask availability immediately
   checkMetaMaskOnLoad();
   
-  // Initialiser Web3 automatiquement si MetaMask est disponible
-  if (typeof window.ethereum !== 'undefined') {
+  // Note: Removed automatic Web3 initialization to prevent MetaMask popup
+  // Web3 will only be initialized when user clicks "Connect MetaMask"
+  if (false) { // Disabled automatic initialization
     try {
       console.log("🔄 Initialisation automatique de Web3...");
       await initWeb3();

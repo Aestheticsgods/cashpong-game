@@ -353,44 +353,65 @@ async function connectWallet() {
     console.log("✅ MetaMask détecté");
     
     try {
-      console.log("⏳ Forçage vers Polygon Mainnet...");
-      await forcePolygonMainnet();
+      // Use the new connectWalletAndInitialize function from script-li-khask-tchuf.js
+      if (typeof window.connectWalletAndInitialize === 'function') {
+        const success = await window.connectWalletAndInitialize();
+        if (success) {
+          // Update UI elements
+          const walletAddressElement = document.getElementById("walletAddress");
+          if (walletAddressElement && window.connectedWallet) {
+            walletAddressElement.innerText = shorten(window.connectedWallet);
+            walletAddressElement.style.color = "#4CAF50";
+            walletAddressElement.style.fontWeight = "bold";
+          }
+          
+          console.log("✅ Contrat connecté avec succès !");
+          alert("✅ MetaMask connecté avec succès !\n\nAdresse: " + shorten(window.connectedWallet));
+          return true;
+        } else {
+          throw new Error("Échec de l'initialisation de la connexion");
+        }
+      } else {
+        // Fallback to local implementation
+        console.log("⏳ Forçage vers Polygon Mainnet...");
+        await forcePolygonMainnet();
 
-      console.log("⏳ Demande d'accès aux comptes...");
-      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-      
-      if (!accounts || accounts.length === 0) {
-        throw new Error("Aucun compte MetaMask disponible");
+        console.log("⏳ Demande d'accès aux comptes...");
+        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+        
+        if (!accounts || accounts.length === 0) {
+          throw new Error("Aucun compte MetaMask disponible");
+        }
+        
+        connectedWallet = accounts[0];
+        console.log(`✅ Compte connecté: ${connectedWallet}`);
+
+        console.log("⏳ Initialisation Web3...");
+        web3 = new Web3(window.ethereum);
+
+        console.log("⏳ Initialisation des contrats...");
+        contract = new web3.eth.Contract(contractABI, CONTRACT_ADDRESS);
+        cashPongContract = new web3.eth.Contract(contractABI, CONTRACT_ADDRESS);
+
+        // Variables globales
+        window.web3 = web3;
+        window.contract = contract;
+        window.connectedWallet = connectedWallet;
+        window.cashPongContract = cashPongContract;
+
+        // Afficher l'adresse wallet
+        const walletAddressElement = document.getElementById("walletAddress");
+        if (walletAddressElement) {
+          walletAddressElement.innerText = shorten(connectedWallet);
+          walletAddressElement.style.color = "#4CAF50";
+          walletAddressElement.style.fontWeight = "bold";
+        }
+        
+        console.log("✅ Contrat connecté avec succès !");
+        alert("✅ MetaMask connecté avec succès !\n\nAdresse: " + shorten(connectedWallet));
+        
+        return true;
       }
-      
-      connectedWallet = accounts[0];
-      console.log(`✅ Compte connecté: ${connectedWallet}`);
-
-      console.log("⏳ Initialisation Web3...");
-      web3 = new Web3(window.ethereum);
-
-      console.log("⏳ Initialisation des contrats...");
-      contract = new web3.eth.Contract(contractABI, CONTRACT_ADDRESS);
-      cashPongContract = new web3.eth.Contract(contractABI, CONTRACT_ADDRESS);
-
-      // Variables globales
-      window.web3 = web3;
-      window.contract = contract;
-      window.connectedWallet = connectedWallet;
-      window.cashPongContract = cashPongContract;
-
-      // Afficher l'adresse wallet
-      const walletAddressElement = document.getElementById("walletAddress");
-      if (walletAddressElement) {
-        walletAddressElement.innerText = shorten(connectedWallet);
-        walletAddressElement.style.color = "#4CAF50";
-        walletAddressElement.style.fontWeight = "bold";
-      }
-      
-      console.log("✅ Contrat connecté avec succès !");
-      alert("✅ MetaMask connecté avec succès !\n\nAdresse: " + shorten(connectedWallet));
-      
-      return true;
     } catch (error) {
       console.error("❌ Erreur connexion MetaMask:", error);
       
