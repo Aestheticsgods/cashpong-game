@@ -1801,17 +1801,18 @@ socket.on("startServerGame", (data) => {
     console.log(`[DEBUG] Room creator address: "${room.playerA.toLowerCase()}"`);
     console.log(`[DEBUG] Addresses match: ${requesterAddress === room.playerA.toLowerCase()}`);
     
-    // Verify that only the room creator (playerA) can start the game
-    if (!requesterAddress || requesterAddress !== room.playerA.toLowerCase()) {
-      console.warn(`❌ Only room creator can start the game. Requester: "${requesterAddress}", Creator: "${room.playerA}"`);
+    // Check if both players have joined before allowing game start
+    if (!room.playerAJoined || !room.playerBJoined) {
+      console.warn(`❌ Cannot start game - both players must join first. PlayerA joined: ${room.playerAJoined}, PlayerB joined: ${room.playerBJoined}`);
       socket.emit("gameStartDenied", {
-        message: `Seul le créateur de la room peut lancer la partie. Your address: ${requesterAddress}, Creator: ${room.playerA}`,
+        message: `Les deux joueurs doivent d'abord rejoindre la room avant de pouvoir commencer la partie.`,
         roomId: roomId
       });
       return;
     }
     
-    console.log(`✅ Game start authorized for room creator: ${requesterAddress}`);
+    // Allow game start if both players are in the room (more flexible authorization)
+    console.log(`✅ Game start authorized - both players have joined room ${roomId}`);
     
     // Create game instance with server-side physics
     const gameInstance = gameServer.createGameInstance(roomId, room.playerA, room.playerB);
