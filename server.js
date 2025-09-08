@@ -18,8 +18,10 @@ const io = new Server(server, {
     origin: process.env.NODE_ENV === 'production' 
       ? [
           process.env.FRONTEND_URL,
-          "https://yourdomain.com", // Replace with your actual domain
-          "http://yourdomain.com"
+          "https://cashpong.io",
+          "http://cashpong.io",
+          "http://72.60.70.13:3000",
+          "https://72.60.70.13:3000"
         ] 
       : "*",
     methods: ["GET", "POST"],

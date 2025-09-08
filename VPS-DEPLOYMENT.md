@@ -37,10 +37,14 @@ mkdir logs
 ```
 
 ### 4. Update your domain in configuration:
-Edit these files and replace "yourdomain.com" with your actual domain:
+All configuration files have been updated with cashpong.io domain.
+Your VPS IP: 72.60.70.13
+Your domain: cashpong.io
+
+If you need to make changes, edit:
 - `.env.production`
-- `server.js` (line with CORS origin)
-- `server-multiplayer.js` (line with CORS origin)
+- `server.js` (CORS origin settings)
+- `server-multiplayer.js` (CORS origin settings)
 
 ### 5. Start with PM2:
 ```bash
@@ -60,7 +64,7 @@ Create `/etc/nginx/sites-available/cashpong`:
 ```nginx
 server {
     listen 80;
-    server_name yourdomain.com www.yourdomain.com;
+    server_name cashpong.io www.cashpong.io;
 
     location / {
         proxy_pass http://localhost:3000;
@@ -107,7 +111,7 @@ sudo ufw enable
 ### 8. SSL Certificate (Optional):
 ```bash
 sudo apt install certbot python3-certbot-nginx -y
-sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+sudo certbot --nginx -d cashpong.io -d www.cashpong.io
 ```
 
 ## 📊 Monitoring:
@@ -125,8 +129,9 @@ pm2 restart cashpong-multiplayer
 ```
 
 ## 🌐 Access your game:
-- **Production URL:** `https://yourdomain.com`
-- **Direct IP:** `http://your-vps-ip:3000`
+- **Production URL:** `https://cashpong.io`
+- **Direct IP:** `http://72.60.70.13:3000`
+- **Testing URL:** `http://cashpong.io:3000`
 
 ## 🔧 Update deployment:
 ```bash
