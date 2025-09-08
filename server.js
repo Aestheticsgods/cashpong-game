@@ -1187,10 +1187,12 @@ cashPongContract.events.RoomCreated()
       playerB: playerB.toLowerCase(),
       betAmount,
       isActive: true,
-      playerAJoined: false,
+      playerAJoined: true, // PlayerA (creator) is automatically joined when creating room
       playerBJoined: false,
       createdAt: new Date().toISOString()
     };
+
+    console.log(`🏠 [ROOM ${roomId}] Created with PlayerA auto-joined: ${playerA.toLowerCase()}`);
 
     // Diffusion à tous si nécessaire (optionnel)
     io.emit("roomCreated", { roomId, playerA, playerB, betAmount });
@@ -1204,12 +1206,7 @@ cashPongContract.events.RoomCreated()
       socketA.currentRoomId = roomId;
       socketA.emit("roomJoined", { roomId, opponent: playerB });
       console.log(`✅ Créateur ${playerA} rejoint automatiquement sa room ${roomId}`);
-      
-      // Mark playerA as joined since they auto-join
-      if (activeRooms[roomId]) {
-        activeRooms[roomId].playerAJoined = true;
-        console.log(`🎮 [ROOM ${roomId}] PlayerA (créateur) auto-rejoint confirmé`);
-      }
+      console.log(`🎮 [ROOM ${roomId}] PlayerA (créateur) déjà marqué comme rejoint lors de la création`);
     }
 
     // L'adversaire (playerB) reçoit seulement une notification pour rejoindre manuellement
