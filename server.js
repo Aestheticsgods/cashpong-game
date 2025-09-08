@@ -1867,19 +1867,49 @@ socket.on("startServerGame", (data) => {
     // Create game instance with server-side physics
     const gameInstance = gameServer.createGameInstance(roomId, room.playerA, room.playerB);
     
-    // 🔥 FIND AND JOIN BOTH PLAYERS TO SOCKET.IO ROOM FOR BROADCASTING (FIXED)
+    // 🔥 FIND AND JOIN BOTH PLAYERS TO SOCKET.IO ROOM FOR BROADCASTING (FIXED + DEBUG)
     console.log(`🔍 [GAME START] Finding sockets for both players...`);
+    console.log(`🔍 [GAME START] Room PlayerA: "${room.playerA}", PlayerB: "${room.playerB}"`);
+    console.log(`🔍 [GAME START] Total users in users object: ${Object.keys(users).length}`);
+    
+    // Debug: show all users in the users object
+    Object.entries(users).forEach(([key, socket], index) => {
+      console.log(`🔍 [GAME START] User ${index}: key="${key}", socketId="${socket?.id}", ethAddress="${socket?.ethAddress}", username="${socket?.username}"`);
+    });
+    
+    let foundPlayerA = false;
+    let foundPlayerB = false;
+    
     Object.values(users).forEach(userSocket => {
       if (userSocket && userSocket.id && userSocket.ethAddress) {
         const userAddress = userSocket.ethAddress.toLowerCase();
-        if (userAddress === room.playerA || userAddress === room.playerB) {
+        console.log(`🔍 [GAME START] Checking socket ${userSocket.id} with address ${userAddress}`);
+        
+        if (userAddress === room.playerA.toLowerCase()) {
+          foundPlayerA = true;
           if (userSocket.id !== socket.id) { // Don't double-join requesting socket
             userSocket.join(roomId);
-            console.log(`✅ [GAME START] User ${userSocket.username} (${userAddress}) joined room ${roomId}`);
+            console.log(`✅ [GAME START] PlayerA ${userSocket.username} (${userAddress}) joined room ${roomId}`);
+          } else {
+            console.log(`✅ [GAME START] PlayerA ${userSocket.username} (${userAddress}) already in room (requesting socket)`);
+          }
+        }
+        if (userAddress === room.playerB.toLowerCase()) {
+          foundPlayerB = true;
+          if (userSocket.id !== socket.id) { // Don't double-join requesting socket
+            userSocket.join(roomId);
+            console.log(`✅ [GAME START] PlayerB ${userSocket.username} (${userAddress}) joined room ${roomId}`);
+          } else {
+            console.log(`✅ [GAME START] PlayerB ${userSocket.username} (${userAddress}) already in room (requesting socket)`);
           }
         }
       }
     });
+    
+    console.log(`🔍 [GAME START] Results: PlayerA found=${foundPlayerA}, PlayerB found=${foundPlayerB}`);
+    if (!foundPlayerA || !foundPlayerB) {
+      console.log(`⚠️ [GAME START] WARNING: Missing players will not receive real-time updates!`);
+    }
     
     // Start the server-side game loop
     gameServer.startServerGame(roomId);
