@@ -291,7 +291,7 @@ let contract = null;
 let cashPongContract = null;
 
 // Adresse du contrat sur Polygon Mainnet (global variable)
-window.CONTRACT_ADDRESS = "0xdb51573EeBE611CEA7e31F0FE2A92Cbb7929b896";
+window.CONTRACT_ADDRESS = "0x2e1dC69a1940903A8Ff6dF8E416A0a0DDD44fb7D";
 const CONTRACT_ADDRESS = window.CONTRACT_ADDRESS;
 
 // Configuration Polygon Mainnet - make globally available
@@ -1089,7 +1089,8 @@ function initializeWeb3WithAccount(account) {
       window.web3 = web3;
       console.log("🔧 New Web3 instance created");
     } else {
-      web3 = window.web3; // Use existing instance
+      // Always use the ethereum provider, never window.web3
+      web3 = new Web3(window.ethereum);
       console.log("🔧 Using existing Web3 instance");
     }
     
@@ -1801,7 +1802,7 @@ class ForfeitManager {
       // Informer le serveur
       if (window.socket && window.socket.connected) {
         window.socket.emit("windowBeforeUnload", {
-          roomId: this.currentRoomId,
+          roomId: this.currentRoomId ? this.currentRoomId.toString() : null,
           playerAddress: this.wallet,
           opponentAddress: this.opponentAddress
         });
@@ -1887,7 +1888,7 @@ class ForfeitManager {
         // Notifier le serveur
         if (window.socket && window.socket.connected) {
           window.socket.emit("forfeitCompleted", {
-            roomId: this.currentRoomId,
+            roomId: this.currentRoomId ? this.currentRoomId.toString() : null,
             forfeitingPlayer: this.wallet,
             opponentAddress: this.opponentAddress
           });

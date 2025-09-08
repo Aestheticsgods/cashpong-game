@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cashpong - Rules</title>
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="icon" type="image/png" sizes="32x32" href="../hadi.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../hadi.png">
+  <link rel="icon" type="image/x-icon" href="../favicon.ico">
+  <style>
+    .rules-container {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 30px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius: 16px;
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 20px 60px rgba(2,6,23,0.7);
+      color: #e6f7ff;
+      line-height: 1.6;
+    }
+
+    .rules-header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .rules-header h1 {
+      color: var(--accent);
+      font-size: 2.5em;
+      margin-bottom: 10px;
+      text-shadow: 0 2px 12px rgba(96,240,255,0.12);
+    }
+
+    .rules-header .subtitle {
+      color: var(--muted);
+      font-size: 1.1em;
+    }
+
+    .rules-section {
+      margin-bottom: 30px;
+      padding: 20px;
+      background: rgba(255,255,255,0.01);
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.02);
+    }
+
+    .rules-section h2 {
+      color: var(--accent);
+      font-size: 1.4em;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .rules-section h3 {
+      color: var(--accent-2);
+      font-size: 1.2em;
+      margin: 20px 0 10px 0;
+    }
+
+    .rules-section ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .rules-section li {
+      margin-bottom: 8px;
+      padding-left: 20px;
+      position: relative;
+    }
+
+    .rules-section li:before {
+      content: "●";
+      color: var(--accent);
+      position: absolute;
+      left: 0;
+      font-weight: bold;
+    }
+
+    .rules-section ol {
+      padding-left: 20px;
+    }
+
+    .rules-section ol li {
+      margin-bottom: 8px;
+      padding-left: 0;
+    }
+
+    .rules-section ol li:before {
+      display: none;
+    }
+
+    .highlight-box {
+      background: linear-gradient(90deg, rgba(96,240,255,0.05), rgba(138,60,255,0.05));
+      border: 1px solid rgba(96,240,255,0.1);
+      border-radius: 8px;
+      padding: 15px;
+      margin: 15px 0;
+    }
+
+    .warning-box {
+      background: linear-gradient(90deg, rgba(255,107,107,0.05), rgba(255,90,60,0.05));
+      border: 1px solid rgba(255,107,107,0.1);
+      border-radius: 8px;
+      padding: 15px;
+      margin: 15px 0;
+    }
+
+    .disclaimer-section {
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 25px;
+      margin-top: 30px;
+    }
+
+    .disclaimer-section h2 {
+      color: var(--danger);
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .bottom-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 40px;
+      padding-top: 30px;
+      border-top: 1px solid var(--glass-border);
+    }
+
+    .discord-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 700;
+      padding: 12px 20px;
+      background: linear-gradient(90deg, rgba(138,60,255,0.1), rgba(96,240,255,0.1));
+      border-radius: 12px;
+      border: 1px solid rgba(138,60,255,0.2);
+      transition: all 180ms ease;
+    }
+
+    .discord-link:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(138,60,255,0.15);
+    }
+
+    .discord-icon {
+      font-size: 24px;
+    }
+
+    .play-button {
+      background: linear-gradient(90deg, #31e89a, #00c2ff);
+      color: #020617;
+      font-weight: 700;
+      font-size: 18px;
+      padding: 15px 30px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      transition: all 180ms ease;
+      box-shadow: 0 8px 30px rgba(0,194,255,0.12);
+    }
+
+    .play-button:hover {
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 12px 50px rgba(0,194,255,0.2);
+    }
+
+    .separator {
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      margin: 25px 0;
+      border-radius: 1px;
+    }
+
+    kbd {
+      background: linear-gradient(135deg, #1e293b, #334155);
+      color: var(--accent);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+      font-size: 0.9em;
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      display: inline-block;
+      margin: 0 2px;
+    }
+
+    @media (max-width: 768px) {
+      .rules-container {
+        margin: 10px;
+        padding: 20px;
+      }
+      
+      .rules-header h1 {
+        font-size: 2em;
+      }
+      
+      .bottom-actions {
+        flex-direction: column;
+        gap: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Language Toggle Button -->
+  <div id="languageToggle" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
+    <button onclick="toggleLanguage()" style="
+      background: rgba(96,240,255,0.2);
+      color: #60f0ff;
+      border: 1px solid #60f0ff;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    " onmouseover="this.style.background='#60f0ff'; this.style.color='#1a2233'" 
+       onmouseout="this.style.background='rgba(96,240,255,0.2)'; this.style.color='#60f0ff'">
+      <span id="flagIcon">🇺🇸</span>
+      <span id="langText">EN</span>
+    </button>
+  </div>
+
+  <div class="rules-container">
+    <!-- Back button -->
+    <div style="margin-bottom: 20px;">
+      <button class="secondary-button" onclick="goBack()" style="margin: 0;" id="backButton">
+        ← Retour à l'accueil
+      </button>
+    </div>
+    
+    <div class="rules-header">
+      <div class="logo" style="text-align: center; margin-bottom: 20px;">
+        <img src="hadi.png" alt="Logo" style="height: 120px; width: auto;">
+      </div>
+      <h1 id="rulesTitle">✅ RÈGLES OFFICIELLES</h1>
+      <p class="subtitle" id="rulesSubtitle">Un jeu multijoueur inspiré du Pong classique, entièrement intégré à la blockchain Polygon. Il vous permet de parier et de gagner de la cryptomonnaie (MATIC) en temps réel, sécurisé par des contrats intelligents.</p>
+    </div>
+
+    <div class="separator"></div>
+
+    <div class="rules-section">
+      <h2 id="objectiveTitle">🎯 Objectif du jeu</h2>
+      <p id="objectiveText">Affrontez votre adversaire dans un match de style Pong. Le premier joueur à atteindre 10 points gagne la partie et remporte le prix !</p>
+    </div>
+
+    <div class="rules-section">
+      <h2 id="modesTitle">🕹 Modes de jeu</h2>
+      <ul>
+        <li><strong id="soloMode">Mode Solo :</strong> <span id="soloModeDesc">Entraînez-vous en sécurité avant de défier de vrais adversaires.</span></li>
+        <li><strong id="multiMode">Mode Multijoueur :</strong> <span id="multiModeDesc">Jouez contre un autre joueur et pariez en MATIC (Polygon).</span></li>
+      </ul>
+    </div>
+
+    <div class="rules-section">
+      <h2 id="howItWorksTitle">💰 Comment ça marche</h2>
+      <ol>
+        <li id="step1">Créez un compte et connectez votre portefeuille MetaMask.</li>
+        <li id="step2">Définissez le montant de votre pari en Polygon (MATIC).</li>
+        <li id="step3">Créez une salle → Vous recevrez un numéro de salle unique.</li>
+        <li id="step4">Partagez ce numéro avec votre adversaire → Il doit placer le même pari pour rejoindre.</li>
+        <li id="step5">Le match commence !</li>
+      </ol>
+    </div>
+
+    <div class="rules-section">
+      <h2 id="howToPlayTitle">🎮 Comment jouer</h2>
+      <div class="highlight-box">
+        <h3 id="controlsTitle">🕹️ Contrôles</h3>
+        <ul>
+          <li id="player1Controls"><strong>Joueur 1 (Gauche) :</strong> Utilisez les touches <kbd>W</kbd> (haut) et <kbd>S</kbd> (bas)</li>
+          <li id="player2Controls"><strong>Joueur 2 (Droite) :</strong> Utilisez les flèches <kbd>↑</kbd> (haut) et <kbd>↓</kbd> (bas)</li>
+        </ul>
+      </div>
+      
+      <h3 id="gameplayTitle">⚡ Gameplay</h3>
+      <ul>
+        <li id="gameplay1">Déplacez votre raquette pour frapper la balle et l'envoyer vers votre adversaire</li>
+        <li id="gameplay2">Empêchez la balle de passer derrière votre raquette</li>
+        <li id="gameplay3">Chaque fois que la balle dépasse la raquette de votre adversaire, vous marquez un point</li>
+        <li id="gameplay4">La balle devient de plus en plus rapide au cours du match</li>
+        <li id="gameplay5">Utilisez des angles stratégiques pour surprendre votre adversaire</li>
+      </ul>
+      
+      <h3 id="tipsTitle">💡 Conseils de pro</h3>
+      <div class="warning-box">
+        <ul>
+          <li id="tip1">📍 <strong>Positionnement :</strong> Gardez votre raquette centrée pour réagir rapidement</li>
+          <li id="tip2">⚡ <strong>Timing :</strong> Anticipez la trajectoire de la balle</li>
+          <li id="tip3">🎯 <strong>Angles :</strong> Frappez la balle avec les bords de votre raquette pour créer des angles difficiles</li>
+          <li id="tip4">🧠 <strong>Stratégie :</strong> Variez vos retours pour déstabiliser votre adversaire</li>
+          <li id="tip5">⚠️ <strong>Concentration :</strong> Restez concentré, la vitesse augmente progressivement !</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="rules-section">
+      <h2 id="winningConditionsTitle">🏆 Winning Conditions</h2>
+      <ul>
+        <li id="winCondition1">The first player to reach 10 points wins the match.</li>
+      </ul>
+      
+      <h3 id="prizeDistributionTitle">Prize distribution:</h3>
+      <div class="highlight-box">
+        <ul>
+          <li id="prizeWinner">✅ 90% goes to the winner</li>
+          <li id="prizeFee">✅ 10% goes to CashPong (service fee)</li>
+        </ul>
+      </div>
+      <p id="winningsInfo">Winnings are automatically sent to the winner's MetaMask wallet via the smart contract.</p>
+    </div>
+
+    <div class="rules-section">
+      <h2 id="importantRulesTitle">⚠️ Important Rules</h2>
+      <div class="warning-box">
+        <ul>
+          <li id="forfeitRule"><strong>Disconnection or inactivity (+2 min) = FORFEIT</strong><br>
+          → The inactive player loses their bet, which goes to the opponent.</li>
+          <li id="noCancellationRule">No cancellations after placing your bet.</li>
+          <li id="connectionRule">Play with a stable Internet connection to avoid unintended forfeits.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="rules-section">
+      <h2 id="funMessage">🔥 Have fun, play smart, and win as much crypto as possible with CashPong!</h2>
+    </div>
+
+    <div class="separator"></div>
+
+    <div class="disclaimer-section">
+      <h2 id="disclaimerTitle">⚠️ Disclaimer – CashPong</h2>
+      <p id="disclaimerIntro">CashPong is a blockchain-based game that allows players to bet and win cryptocurrency (MATIC) on the Polygon network. By using CashPong, you agree to the following:</p>
+      
+      <h3 id="ageRequirementTitle">1. Age Requirement</h3>
+      <ul>
+        <li id="ageRequirementText">You must be at least 18 years old or the legal age in your jurisdiction to participate in betting games.</li>
+      </ul>
+
+      <h3 id="financialRiskTitle">2. Financial Risk</h3>
+      <ul>
+        <li id="financialRisk1">All bets are made in cryptocurrency (MATIC) and involve financial risk. You may lose your funds.</li>
+        <li id="financialRisk2">Only bet amounts you can afford to lose.</li>
+      </ul>
+
+      <h3 id="noRefundTitle">3. No Refund Policy</h3>
+      <ul>
+        <li id="noRefundText">Once a bet is placed, it cannot be canceled or refunded, regardless of the game outcome or technical issues.</li>
+      </ul>
+
+      <h3 id="blockchainTitle">4. Blockchain Transactions</h3>
+      <ul>
+        <li id="blockchain1">All transactions are executed on-chain via smart contracts and cannot be reversed.</li>
+        <li id="blockchain2">CashPong is not responsible for gas fees, network delays, or blockchain errors.</li>
+      </ul>
+
+      <h3 id="forfeitsTitle">5. Forfeits and Inactivity</h3>
+      <ul>
+        <li id="forfeitsText">Players who disconnect or remain inactive for more than 2 minutes during a match automatically forfeit, and their bet is awarded to the opponent.</li>
+      </ul>
+
+      <h3 id="liabilityTitle">6. No Liability</h3>
+      <ul>
+        <li id="liability1">CashPong is not liable for any losses, damages, or disputes resulting from gameplay, connection issues, or user errors.</li>
+        <li id="liability2">Players are responsible for maintaining a stable Internet connection and proper wallet security.</li>
+      </ul>
+
+      <h3 id="complianceTitle">7. Regulatory Compliance</h3>
+      <ul>
+        <li id="compliance1">You are responsible for ensuring that participating in betting games with cryptocurrency is legal in your jurisdiction.</li>
+        <li id="compliance2">CashPong does not operate in countries where such activities are prohibited by law.</li>
+      </ul>
+
+      <div class="highlight-box">
+        <p id="finalAgreement"><strong>✅ By using CashPong, you acknowledge and accept all the terms stated above. Play responsibly.</strong></p>
+      </div>
+    </div>
+
+    <div class="network-info" style="margin-top: 20px; text-align: center; padding: 20px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+      <div class="network-badge" style="display: inline-block; background: linear-gradient(135deg, #60f0ff 0%, #4ade80 100%); color: #1a2233; padding: 8px 16px; border-radius: 20px; font-weight: bold; margin-bottom: 10px;">🔗 Polygon Network</div>
+      <div id="networkDescription" style="color: #e6f7ff; margin-bottom: 10px;">Connect your MetaMask wallet to start playing multiplayer. All transactions are processed on Polygon for fast, low-cost gaming.</div>
+      <div id="metamaskStatus" style="font-size: 0.9em;">
+        <span id="walletStatus" style="color: #60f0ff;">🔍 Checking MetaMask...</span>
+      </div>
+    </div>
+
+    <div class="bottom-actions" style="display: flex; flex-direction: column; gap: 20px; align-items: center; margin-top: 40px; padding-top: 30px; border-top: 1px solid var(--glass-border);">
+      
+      <button class="game-button discord-button" onclick="openDiscord()" id="discordButton">
+        📱 <span id="discordText">Join Discord</span>
+      </button>
+      
+      <button class="game-button multiplayer-button" onclick="startMultiplayerGame()" id="multiplayerButton">
+        🎮 <span>MULTIPLAYER MODE</span>
+      </button>
+      
+      <button class="game-button solo-button" onclick="startSoloGame()" id="soloButton">
+        🎯 <span>SOLO MODE</span>
+      </button>
+      
+    </div>
+  </div>
+
+  <script>
+    function goBack() {
+      window.location.href = '/';
+    }
+
+    function startGame() {
+      window.location.href = '/game';
+    }
+    
+    function startMultiplayerGame() {
+      window.location.href = '/game';
+    }
+    
+    function startSoloGame() {
+      window.location.href = '/solo-game';
+    }
+
+    function openDiscord() {
+      const discordLink = 'https://discord.gg/TF78M7g9';
+      window.open(discordLink, '_blank');
+    }
+
+    // MetaMask functionality
+    function checkMetaMask() {
+      updateMetaMaskStatus();
+    }
+
+    function updateMetaMaskStatus() {
+      const lang = languages[currentLanguage];
+      const walletStatus = document.getElementById('walletStatus');
+      const multiplayerBtn = document.getElementById('multiplayerButton');
+
+      if (typeof window.ethereum !== 'undefined') {
+        walletStatus.innerHTML = '✅ MetaMask detected - Ready to play!';
+        walletStatus.style.color = '#4ade80';
+        
+        // Check if already connected
+        window.ethereum.request({ method: 'eth_accounts' })
+          .then(accounts => {
+            if (accounts.length > 0) {
+              walletStatus.innerHTML = `✅ Connected: ${accounts[0].substring(0, 8)}...`;
+            } else {
+              walletStatus.innerHTML = '🔌 MetaMask detected - Click Multiplayer to connect';
+              walletStatus.style.color = '#60f0ff';
+            }
+          })
+          .catch(err => {
+            console.log('Error checking accounts:', err);
+          });
+      } else {
+        walletStatus.innerHTML = '❌ MetaMask not found - Please install MetaMask';
+        walletStatus.style.color = '#ef4444';
+        multiplayerBtn.innerHTML = '📥 Install MetaMask';
+        multiplayerBtn.onclick = function() {
+          window.open('https://metamask.io/', '_blank');
+        };
+      }
+    }
+
+    // Add some button styles for consistency
+    const style = document.createElement('style');
+    style.textContent = `
+      .secondary-button {
+        background: transparent;
+        color: var(--accent);
+        border: 2px solid var(--accent);
+        padding: 12px 24px;
+        font-size: 1em;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+      }
+
+      .secondary-button:hover {
+        background: var(--accent);
+        color: #1a2233;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(96,240,255,0.3);
+      }
+
+      /* Uniform button styles for all game buttons */
+      .game-button {
+        width: 300px;
+        height: 60px;
+        border: none;
+        font-size: 1.2em;
+        font-weight: bold;
+        border-radius: 30px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+      }
+
+      .game-button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+      }
+
+      .discord-button {
+        background: linear-gradient(135deg, #5865F2 0%, #7289DA 100%);
+        color: white;
+      }
+
+      .discord-button:hover {
+        box-shadow: 0 15px 40px rgba(88,101,242,0.4);
+      }
+
+      .multiplayer-button {
+        background: linear-gradient(135deg, #60f0ff 0%, #4ade80 100%);
+        color: #1a2233;
+      }
+
+      .multiplayer-button:hover {
+        box-shadow: 0 15px 40px rgba(96,240,255,0.4);
+      }
+
+      .solo-button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+
+      .solo-button:hover {
+        box-shadow: 0 15px 40px rgba(102,126,234,0.4);
+      }
+
+      .play-button {
+        background: linear-gradient(135deg, var(--accent), #40e0ff);
+        color: #1a2233;
+        border: none;
+        padding: 18px 40px;
+        font-size: 1.3em;
+        font-weight: bold;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 
+          0 10px 30px rgba(96,240,255,0.3),
+          inset 0 1px 0 rgba(255,255,255,0.3);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .play-button:hover {
+        transform: translateY(-3px);
+        box-shadow: 
+          0 15px 40px rgba(96,240,255,0.4),
+          inset 0 1px 0 rgba(255,255,255,0.3);
+      }
+    `;
+    document.head.appendChild(style);
+    
+    // Language data for rules page
+    const languages = {
+      fr: {
+        backButton: "← Retour à l'accueil",
+        rulesTitle: "✅ RÈGLES OFFICIELLES DE CASHPONG",
+        rulesSubtitle: "CashPong est un jeu multijoueur inspiré du Pong classique, entièrement intégré à la blockchain Polygon. Il vous permet de parier et de gagner de la cryptomonnaie (MATIC) en temps réel, sécurisé par des contrats intelligents.",
+        objectiveTitle: "🎯 Objectif du jeu",
+        objectiveText: "Affrontez votre adversaire dans un match de style Pong. Le premier joueur à atteindre 10 points gagne la partie et remporte le prix !",
+        modesTitle: "🕹 Modes de jeu",
+        soloMode: "Mode Solo :",
+        soloModeDesc: "Entraînez-vous en sécurité avant de défier de vrais adversaires.",
+        multiMode: "Mode Multijoueur :",
+        multiModeDesc: "Jouez contre un autre joueur et pariez en MATIC (Polygon).",
+        howItWorksTitle: "💰 Comment ça marche",
+        step1: "Créez un compte et connectez votre portefeuille MetaMask.",
+        step2: "Définissez le montant de votre pari en Polygon (MATIC).",
+        step3: "Créez une salle → Vous recevrez un numéro de salle unique.",
+        step4: "Partagez ce numéro avec votre adversaire → Il doit placer le même pari pour rejoindre.",
+        step5: "Le match commence !",
+        howToPlayTitle: "🎮 Comment jouer",
+        controlsTitle: "🕹️ Contrôles",
+        player1Controls: "Joueur 1 (Gauche) : Utilisez les touches W (haut) et S (bas)",
+        player2Controls: "Joueur 2 (Droite) : Utilisez les flèches ↑ (haut) et ↓ (bas)",
+        gameplayTitle: "⚡ Gameplay",
+        gameplay1: "Déplacez votre raquette pour frapper la balle et l'envoyer vers votre adversaire",
+        gameplay2: "Empêchez la balle de passer derrière votre raquette",
+        gameplay3: "Chaque fois que la balle dépasse la raquette de votre adversaire, vous marquez un point",
+        gameplay4: "La balle devient de plus en plus rapide au cours du match",
+        gameplay5: "Utilisez des angles stratégiques pour surprendre votre adversaire",
+        tipsTitle: "💡 Conseils de pro",
+        tip1: "📍 Positionnement : Gardez votre raquette centrée pour réagir rapidement",
+        tip2: "⚡ Timing : Anticipez la trajectoire de la balle",
+        tip3: "🎯 Angles : Frappez la balle avec les bords de votre raquette pour créer des angles difficiles",
+        tip4: "🧠 Stratégie : Variez vos retours pour déstabiliser votre adversaire",
+        tip5: "⚠️ Concentration : Restez concentré, la vitesse augmente progressivement !",
+        playButton: "🎮 JOUER MAINTENANT",
+        multiplayerButton: "🎮 MODE MULTIJOUEUR",
+        soloButton: "🎯 MODE SOLO",
+        discordButton: "📱 Rejoindre Discord",
+        networkDescription: "Connectez votre portefeuille MetaMask pour commencer à jouer multijoueur. Toutes les transactions sont traitées sur Polygon pour un jeu rapide et peu coûteux.",
+        winningConditionsTitle: "🏆 Conditions de victoire",
+        winCondition1: "Le premier joueur à atteindre 10 points gagne le match.",
+        prizeDistributionTitle: "Distribution des prix :",
+        prizeWinner: "✅ 90% vont au gagnant",
+        prizeFee: "✅ 10% vont à CashPong (frais de service)",
+        winningsInfo: "Les gains sont automatiquement envoyés au portefeuille MetaMask du gagnant via le contrat intelligent.",
+        importantRulesTitle: "⚠️ Règles importantes",
+        forfeitRule: "Déconnexion ou inactivité (+2 min) = ABANDON → Le joueur inactif perd son pari, qui va à l'adversaire.",
+        noCancellationRule: "Aucune annulation après avoir placé votre pari.",
+        connectionRule: "Jouez avec une connexion Internet stable pour éviter les abandons involontaires.",
+        funMessage: "🔥 Amusez-vous, jouez intelligemment et gagnez autant de crypto que possible avec CashPong !",
+        disclaimerTitle: "⚠️ Avertissement – CashPong",
+        disclaimerIntro: "CashPong est un jeu basé sur la blockchain qui permet aux joueurs de parier et de gagner de la cryptomonnaie (MATIC) sur le réseau Polygon. En utilisant CashPong, vous acceptez ce qui suit :",
+        ageRequirementTitle: "1. Exigence d'âge",
+        ageRequirementText: "Vous devez avoir au moins 18 ans ou l'âge légal dans votre juridiction pour participer aux jeux de paris.",
+        financialRiskTitle: "2. Risque financier",
+        financialRisk1: "Tous les paris sont faits en cryptomonnaie (MATIC) et impliquent un risque financier. Vous pouvez perdre vos fonds.",
+        financialRisk2: "Ne pariez que des montants que vous pouvez vous permettre de perdre.",
+        noRefundTitle: "3. Politique de non-remboursement",
+        noRefundText: "Une fois qu'un pari est placé, il ne peut pas être annulé ou remboursé, quel que soit le résultat du jeu ou les problèmes techniques.",
+        blockchainTitle: "4. Transactions blockchain",
+        blockchain1: "Toutes les transactions sont exécutées on-chain via des contrats intelligents et ne peuvent pas être inversées.",
+        blockchain2: "CashPong n'est pas responsable des frais de gaz, des retards de réseau ou des erreurs de blockchain.",
+        forfeitsTitle: "5. Abandons et inactivité",
+        forfeitsText: "Les joueurs qui se déconnectent ou restent inactifs pendant plus de 2 minutes pendant un match abandonnent automatiquement, et leur pari est attribué à l'adversaire.",
+        liabilityTitle: "6. Aucune responsabilité",
+        liability1: "CashPong n'est pas responsable des pertes, dommages ou litiges résultant du gameplay, des problèmes de connexion ou des erreurs utilisateur.",
+        liability2: "Les joueurs sont responsables de maintenir une connexion Internet stable et une sécurité de portefeuille appropriée.",
+        complianceTitle: "7. Conformité réglementaire",
+        compliance1: "Vous êtes responsable de vous assurer que participer aux jeux de paris avec cryptomonnaie est légal dans votre juridiction.",
+        compliance2: "CashPong n'opère pas dans les pays où de telles activités sont interdites par la loi.",
+        finalAgreement: "✅ En utilisant CashPong, vous reconnaissez et acceptez tous les termes énoncés ci-dessus. Jouez de manière responsable."
+      },
+      en: {
+        backButton: "← Back to Home",
+        rulesTitle: "✅ OFFICIAL RULES OF CASHPONG",
+        rulesSubtitle: "CashPong is a multiplayer game inspired by classic Pong, fully integrated into the Polygon blockchain. It allows you to bet and win cryptocurrency (MATIC) in real-time, secured by smart contracts.",
+        objectiveTitle: "🎯 Game Objective",
+        objectiveText: "Face off against your opponent in a Pong-style match. The first player to reach 10 points wins the game and takes the prize!",
+        modesTitle: "🕹 Game Modes",
+        soloMode: "Solo Mode:",
+        soloModeDesc: "Practice safely before challenging real opponents.",
+        multiMode: "Multiplayer Mode:",
+        multiModeDesc: "Play against another player and bet in MATIC (Polygon).",
+        howItWorksTitle: "💰 How It Works",
+        step1: "Create an account and connect your MetaMask wallet.",
+        step2: "Set your bet amount in Polygon (MATIC).",
+        step3: "Create a room → You will receive a unique room number.",
+        step4: "Share this number with your opponent → They must place the same bet to join.",
+        step5: "The match begins!",
+        howToPlayTitle: "🎮 How to Play",
+        controlsTitle: "🕹️ Controls",
+        player1Controls: "Player 1 (Left): Use W (up) and S (down) keys",
+        player2Controls: "Player 2 (Right): Use ↑ (up) and ↓ (down) arrow keys",
+        gameplayTitle: "⚡ Gameplay",
+        gameplay1: "Move your paddle to hit the ball and send it towards your opponent",
+        gameplay2: "Prevent the ball from going past your paddle",
+        gameplay3: "Each time the ball passes your opponent's paddle, you score a point",
+        gameplay4: "The ball gets faster and faster throughout the match",
+        gameplay5: "Use strategic angles to surprise your opponent",
+        tipsTitle: "💡 Pro Tips",
+        tip1: "📍 Positioning: Keep your paddle centered to react quickly",
+        tip2: "⚡ Timing: Anticipate the ball's trajectory",
+        tip3: "🎯 Angles: Hit the ball with the edges of your paddle to create difficult angles",
+        tip4: "🧠 Strategy: Vary your returns to destabilize your opponent",
+        tip5: "⚠️ Focus: Stay focused, the speed increases progressively!",
+        playButton: "🎮 PLAY NOW",
+        multiplayerButton: "🎮 MULTIPLAYER MODE",
+        soloButton: "🎯 SOLO MODE",
+        discordButton: "📱 Join Discord",
+        networkDescription: "Connect your MetaMask wallet to start playing multiplayer. All transactions are processed on Polygon for fast, low-cost gaming.",
+        winningConditionsTitle: "🏆 Winning Conditions",
+        winCondition1: "The first player to reach 10 points wins the match.",
+        prizeDistributionTitle: "Prize distribution:",
+        prizeWinner: "✅ 90% goes to the winner",
+        prizeFee: "✅ 10% goes to CashPong (service fee)",
+        winningsInfo: "Winnings are automatically sent to the winner's MetaMask wallet via the smart contract.",
+        importantRulesTitle: "⚠️ Important Rules",
+        forfeitRule: "Disconnection or inactivity (+2 min) = FORFEIT → The inactive player loses their bet, which goes to the opponent.",
+        noCancellationRule: "No cancellations after placing your bet.",
+        connectionRule: "Play with a stable Internet connection to avoid unintended forfeits.",
+        funMessage: "🔥 Have fun, play smart, and win as much crypto as possible with CashPong!",
+        disclaimerTitle: "⚠️ Disclaimer – CashPong",
+        disclaimerIntro: "CashPong is a blockchain-based game that allows players to bet and win cryptocurrency (MATIC) on the Polygon network. By using CashPong, you agree to the following:",
+        ageRequirementTitle: "1. Age Requirement",
+        ageRequirementText: "You must be at least 18 years old or the legal age in your jurisdiction to participate in betting games.",
+        financialRiskTitle: "2. Financial Risk",
+        financialRisk1: "All bets are made in cryptocurrency (MATIC) and involve financial risk. You may lose your funds.",
+        financialRisk2: "Only bet amounts you can afford to lose.",
+        noRefundTitle: "3. No Refund Policy",
+        noRefundText: "Once a bet is placed, it cannot be canceled or refunded, regardless of the game outcome or technical issues.",
+        blockchainTitle: "4. Blockchain Transactions",
+        blockchain1: "All transactions are executed on-chain via smart contracts and cannot be reversed.",
+        blockchain2: "CashPong is not responsible for gas fees, network delays, or blockchain errors.",
+        forfeitsTitle: "5. Forfeits and Inactivity",
+        forfeitsText: "Players who disconnect or remain inactive for more than 2 minutes during a match automatically forfeit, and their bet is awarded to the opponent.",
+        liabilityTitle: "6. No Liability",
+        liability1: "CashPong is not liable for any losses, damages, or disputes resulting from gameplay, connection issues, or user errors.",
+        liability2: "Players are responsible for maintaining a stable Internet connection and proper wallet security.",
+        complianceTitle: "7. Regulatory Compliance",
+        compliance1: "You are responsible for ensuring that participating in betting games with cryptocurrency is legal in your jurisdiction.",
+        compliance2: "CashPong does not operate in countries where such activities are prohibited by law.",
+        finalAgreement: "✅ By using CashPong, you acknowledge and accept all the terms stated above. Play responsibly."
+      }
+    };
+
+    let currentLanguage = 'fr';
+
+    function toggleLanguage() {
+      currentLanguage = currentLanguage === 'fr' ? 'en' : 'fr';
+      updateLanguage();
+      localStorage.setItem('gameLanguage', currentLanguage);
+    }
+
+    function updateLanguage() {
+      const lang = languages[currentLanguage];
+      
+      // Update flag and language indicator
+      document.getElementById('flagIcon').textContent = currentLanguage === 'fr' ? '🇺🇸' : '🇫🇷';
+      document.getElementById('langText').textContent = currentLanguage === 'fr' ? 'EN' : 'FR';
+      
+      // Update content
+      if (document.getElementById('backButton')) document.getElementById('backButton').textContent = lang.backButton;
+      if (document.getElementById('rulesTitle')) document.getElementById('rulesTitle').textContent = lang.rulesTitle;
+      if (document.getElementById('rulesSubtitle')) document.getElementById('rulesSubtitle').textContent = lang.rulesSubtitle;
+      if (document.getElementById('objectiveTitle')) document.getElementById('objectiveTitle').textContent = lang.objectiveTitle;
+      if (document.getElementById('objectiveText')) document.getElementById('objectiveText').textContent = lang.objectiveText;
+      if (document.getElementById('modesTitle')) document.getElementById('modesTitle').textContent = lang.modesTitle;
+      if (document.getElementById('soloMode')) document.getElementById('soloMode').textContent = lang.soloMode;
+      if (document.getElementById('soloModeDesc')) document.getElementById('soloModeDesc').textContent = lang.soloModeDesc;
+      if (document.getElementById('multiMode')) document.getElementById('multiMode').textContent = lang.multiMode;
+      if (document.getElementById('multiModeDesc')) document.getElementById('multiModeDesc').textContent = lang.multiModeDesc;
+      if (document.getElementById('howItWorksTitle')) document.getElementById('howItWorksTitle').textContent = lang.howItWorksTitle;
+      if (document.getElementById('step1')) document.getElementById('step1').textContent = lang.step1;
+      if (document.getElementById('step2')) document.getElementById('step2').textContent = lang.step2;
+      if (document.getElementById('step3')) document.getElementById('step3').textContent = lang.step3;
+      if (document.getElementById('step4')) document.getElementById('step4').textContent = lang.step4;
+      if (document.getElementById('step5')) document.getElementById('step5').textContent = lang.step5;
+      
+      // Update how to play section
+      if (document.getElementById('howToPlayTitle')) document.getElementById('howToPlayTitle').textContent = lang.howToPlayTitle;
+      if (document.getElementById('controlsTitle')) document.getElementById('controlsTitle').textContent = lang.controlsTitle;
+      if (document.getElementById('player1Controls')) document.getElementById('player1Controls').innerHTML = '<strong>' + lang.player1Controls.split(':')[0] + ':</strong>' + lang.player1Controls.split(':')[1];
+      if (document.getElementById('player2Controls')) document.getElementById('player2Controls').innerHTML = '<strong>' + lang.player2Controls.split(':')[0] + ':</strong>' + lang.player2Controls.split(':')[1];
+      if (document.getElementById('gameplayTitle')) document.getElementById('gameplayTitle').textContent = lang.gameplayTitle;
+      if (document.getElementById('gameplay1')) document.getElementById('gameplay1').textContent = lang.gameplay1;
+      if (document.getElementById('gameplay2')) document.getElementById('gameplay2').textContent = lang.gameplay2;
+      if (document.getElementById('gameplay3')) document.getElementById('gameplay3').textContent = lang.gameplay3;
+      if (document.getElementById('gameplay4')) document.getElementById('gameplay4').textContent = lang.gameplay4;
+      if (document.getElementById('gameplay5')) document.getElementById('gameplay5').textContent = lang.gameplay5;
+      if (document.getElementById('tipsTitle')) document.getElementById('tipsTitle').textContent = lang.tipsTitle;
+      if (document.getElementById('tip1')) document.getElementById('tip1').innerHTML = '<strong>' + lang.tip1.split(':')[0] + ':</strong>' + lang.tip1.split(':')[1];
+      if (document.getElementById('tip2')) document.getElementById('tip2').innerHTML = '<strong>' + lang.tip2.split(':')[0] + ':</strong>' + lang.tip2.split(':')[1];
+      if (document.getElementById('tip3')) document.getElementById('tip3').innerHTML = '<strong>' + lang.tip3.split(':')[0] + ':</strong>' + lang.tip3.split(':')[1];
+      if (document.getElementById('tip4')) document.getElementById('tip4').innerHTML = '<strong>' + lang.tip4.split(':')[0] + ':</strong>' + lang.tip4.split(':')[1];
+      if (document.getElementById('tip5')) document.getElementById('tip5').innerHTML = '<strong>' + lang.tip5.split(':')[0] + ':</strong>' + lang.tip5.split(':')[1];
+      
+      // Update buttons
+      if (document.getElementById('multiplayerButton')) {
+        const btn = document.getElementById('multiplayerButton');
+        btn.innerHTML = '🎮 <span>' + lang.multiplayerButton.replace('🎮 ', '') + '</span>';
+      }
+      if (document.getElementById('soloButton')) {
+        const btn = document.getElementById('soloButton');
+        btn.innerHTML = '🎯 <span>' + lang.soloButton.replace('🎯 ', '') + '</span>';
+      }
+      
+      // Update MetaMask network description
+      if (document.getElementById('networkDescription')) {
+        document.getElementById('networkDescription').textContent = lang.networkDescription;
+      }
+      
+      // Update Discord button
+      if (document.getElementById('discordText')) {
+        document.getElementById('discordText').textContent = lang.discordButton.replace('📱 ', '');
+      }
+      
+      // Update winning conditions section
+      if (document.getElementById('winningConditionsTitle')) document.getElementById('winningConditionsTitle').textContent = lang.winningConditionsTitle;
+      if (document.getElementById('winCondition1')) document.getElementById('winCondition1').textContent = lang.winCondition1;
+      if (document.getElementById('prizeDistributionTitle')) document.getElementById('prizeDistributionTitle').textContent = lang.prizeDistributionTitle;
+      if (document.getElementById('prizeWinner')) document.getElementById('prizeWinner').textContent = lang.prizeWinner;
+      if (document.getElementById('prizeFee')) document.getElementById('prizeFee').textContent = lang.prizeFee;
+      if (document.getElementById('winningsInfo')) document.getElementById('winningsInfo').textContent = lang.winningsInfo;
+      
+      // Update important rules section
+      if (document.getElementById('importantRulesTitle')) document.getElementById('importantRulesTitle').textContent = lang.importantRulesTitle;
+      if (document.getElementById('forfeitRule')) document.getElementById('forfeitRule').innerHTML = '<strong>' + lang.forfeitRule.split('→')[0] + '</strong><br>→ ' + lang.forfeitRule.split('→')[1];
+      if (document.getElementById('noCancellationRule')) document.getElementById('noCancellationRule').textContent = lang.noCancellationRule;
+      if (document.getElementById('connectionRule')) document.getElementById('connectionRule').textContent = lang.connectionRule;
+      if (document.getElementById('funMessage')) document.getElementById('funMessage').textContent = lang.funMessage;
+      
+      // Update disclaimer section
+      if (document.getElementById('disclaimerTitle')) document.getElementById('disclaimerTitle').textContent = lang.disclaimerTitle;
+      if (document.getElementById('disclaimerIntro')) document.getElementById('disclaimerIntro').textContent = lang.disclaimerIntro;
+      if (document.getElementById('ageRequirementTitle')) document.getElementById('ageRequirementTitle').textContent = lang.ageRequirementTitle;
+      if (document.getElementById('ageRequirementText')) document.getElementById('ageRequirementText').textContent = lang.ageRequirementText;
+      if (document.getElementById('financialRiskTitle')) document.getElementById('financialRiskTitle').textContent = lang.financialRiskTitle;
+      if (document.getElementById('financialRisk1')) document.getElementById('financialRisk1').textContent = lang.financialRisk1;
+      if (document.getElementById('financialRisk2')) document.getElementById('financialRisk2').textContent = lang.financialRisk2;
+      if (document.getElementById('noRefundTitle')) document.getElementById('noRefundTitle').textContent = lang.noRefundTitle;
+      if (document.getElementById('noRefundText')) document.getElementById('noRefundText').textContent = lang.noRefundText;
+      if (document.getElementById('blockchainTitle')) document.getElementById('blockchainTitle').textContent = lang.blockchainTitle;
+      if (document.getElementById('blockchain1')) document.getElementById('blockchain1').textContent = lang.blockchain1;
+      if (document.getElementById('blockchain2')) document.getElementById('blockchain2').textContent = lang.blockchain2;
+      if (document.getElementById('forfeitsTitle')) document.getElementById('forfeitsTitle').textContent = lang.forfeitsTitle;
+      if (document.getElementById('forfeitsText')) document.getElementById('forfeitsText').textContent = lang.forfeitsText;
+      if (document.getElementById('liabilityTitle')) document.getElementById('liabilityTitle').textContent = lang.liabilityTitle;
+      if (document.getElementById('liability1')) document.getElementById('liability1').textContent = lang.liability1;
+      if (document.getElementById('liability2')) document.getElementById('liability2').textContent = lang.liability2;
+      if (document.getElementById('complianceTitle')) document.getElementById('complianceTitle').textContent = lang.complianceTitle;
+      if (document.getElementById('compliance1')) document.getElementById('compliance1').textContent = lang.compliance1;
+      if (document.getElementById('compliance2')) document.getElementById('compliance2').textContent = lang.compliance2;
+      if (document.getElementById('finalAgreement')) document.getElementById('finalAgreement').innerHTML = '<strong>' + lang.finalAgreement + '</strong>';
+    }
+
+    // Initialize language from localStorage or default to French
+    function initLanguage() {
+      const savedLanguage = localStorage.getItem('gameLanguage');
+      if (savedLanguage && languages[savedLanguage]) {
+        currentLanguage = savedLanguage;
+      }
+      updateLanguage();
+    }
+
+    // Initialize when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      initLanguage();
+      checkMetaMask(); // Initialize MetaMask check
+    });
+  </script>
+  
+  <!-- Copyright Footer -->
+  <div style="
+    position: fixed; 
+    bottom: 0; 
+    left: 0; 
+    right: 0; 
+    background: rgba(26, 34, 51, 0.9); 
+    color: #60f0ff; 
+    text-align: center; 
+    padding: 8px 0; 
+    font-size: 12px; 
+    border-top: 1px solid rgba(96, 240, 255, 0.2);
+    z-index: 999;
+  ">
+    © 2025 Cashpong. All rights reserved. | Powered by Blockchain Technology
+  </div>
+</body>
+</html>

@@ -111,19 +111,27 @@ button:hover{
 
 button:active{ transform: translateY(-1px); }
 
+/* Bouton désactivé / en attente */
+button.disabled, button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+button.disabled:hover, button:disabled:hover {
+  transform: none !important;
+  box-shadow: 0 8px 30px rgba(138,60,255,0.08), inset 0 -2px 6px rgba(0,0,0,0.2);
+}
+
 /* Secondary buttons */
 .force-reconnect-btn{ background: linear-gradient(90deg, #ff7d50, #ff5a3c); color: #0a0a0a; }
 
 #playButton{
   display: none;
-  position: absolute;
-  top:50%; left:50%; transform: translate(-50%,-50%);
-  font-size: 28px;
-  padding: 14px 44px;
-  background: linear-gradient(90deg, #31e89a, #00c2ff);
-  border-radius: 14px;
+  font-size: 18px;
+  padding: 12px 24px;
+  border-radius: 12px;
   z-index: 999;
-  box-shadow: 0 12px 50px rgba(0,194,255,0.12), 0 2px 8px rgba(0,0,0,0.6);
 }
 
 #gameOver{ font-size:22px; color: var(--danger); font-weight:800; margin-top:18px; text-shadow:0 3px 18px rgba(255,107,107,0.12);} 
@@ -171,7 +179,54 @@ button:active{ transform: translateY(-1px); }
 
 #gameOver{ display:none; }
 
-#paymentSection{ display:none; margin-top:20px; }
+#paymentSection{ 
+  display: none; 
+  margin-top: 20px; 
+  text-align: center;
+  width: auto;
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.9);
+  border-radius: 15px;
+  border: 2px solid #60f0ff;
+  max-width: 400px;
+}
+
+#paymentSection[style*="block"] {
+  display: flex !important;
+}
+
+#validatePaymentBtn:disabled {
+  background: #666;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+#claimVictoryControls {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.9);
+  padding: 20px;
+  border-radius: 15px;
+  border: 2px solid #60f0ff;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  max-width: 400px;
+}
 
 /* Chat bubble & window redesigned */
 #chatBubble{ position: fixed; bottom:20px; right:20px; width:64px; height:64px; background: linear-gradient(180deg,#60f0ff,#8a3cff); border-radius: 14px; display:flex; align-items:center; justify-content:center; color:#031023; font-size:28px; cursor:pointer; z-index:999; box-shadow: 0 12px 40px rgba(138,60,255,0.12); border:1px solid rgba(255,255,255,0.06); }

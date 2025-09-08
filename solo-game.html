@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CashPong - Solo Game</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: 'Arial', sans-serif;
+      color: white;
+    }
+
+    .game-container {
+      text-align: center;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 20px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    canvas {
+      border: 3px solid #60f0ff;
+      border-radius: 10px;
+      background: #000;
+      box-shadow: 0 0 30px rgba(96, 240, 255, 0.5);
+    }
+
+    .score {
+      display: flex;
+      justify-content: space-between;
+      font-size: 24px;
+      font-weight: bold;
+      margin: 10px 0;
+      color: #60f0ff;
+    }
+
+    .status {
+      margin: 10px 0;
+      font-size: 18px;
+      color: #fff;
+    }
+
+    .controls {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #ccc;
+    }
+
+    .back-button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      background: linear-gradient(45deg, #60f0ff, #4db8e8);
+      border: none;
+      border-radius: 25px;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .back-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(96, 240, 255, 0.4);
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <!-- Language Toggle Button -->
+    <div id="languageToggle" style="position: fixed; top: 10px; right: 10px; z-index: 1000;">
+      <button onclick="toggleLanguage()" style="
+        background: rgba(96,240,255,0.2);
+        color: #60f0ff;
+        border: 1px solid #60f0ff;
+        padding: 8px 16px;
+        border-radius: 20px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      " onmouseover="this.style.background='#60f0ff'; this.style.color='#1a2233'" 
+         onmouseout="this.style.background='rgba(96,240,255,0.2)'; this.style.color='#60f0ff'">
+        <span id="flagIcon">🇺🇸</span>
+        <span id="langText">EN</span>
+      </button>
+    </div>
+
+    <!-- Logo -->
+    <div style="text-align: center; padding: 20px 0;">
+      <img src="hadi.png" alt="CashPong Logo" style="height: 120px; width: auto;">
+    </div>
+    
+    <div class="score">
+      <div>Player A: <span id="leftScore">0</span></div>
+      <div>Player B: <span id="rightScore">0</span></div>
+    </div>
+    
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    
+    <div class="status" id="gameStatus">Press SPACE to start!</div>
+    
+    <div class="controls">
+      Player A: W/S keys | Player B: ↑/↓ arrows | SPACE: Start/Restart
+    </div>
+    
+    <button class="back-button" onclick="window.location.href='/new/'">← Back to Menu</button>
+  </div>
+
+  <script>
+    // Language system
+    let currentLanguage = 'en';
+    
+    const translations = {
+      en: {
+        playerA: 'Player A',
+        playerB: 'Player B',
+        pressSpace: 'Press SPACE to start!',
+        gameProgress: 'Game in progress! First to 10 wins!',
+        gameStarts: 'Game starts in',
+        controls: 'Player A: W/S keys | Player B: ↑/↓ arrows | SPACE: Start/Restart',
+        backMenu: '← Back to Menu',
+        playerAWins: '🎉 Player A Wins!',
+        playerBWins: '🎉 Player B Wins!',
+        autoRefresh: 'Page will refresh in'
+      },
+      fr: {
+        playerA: 'Joueur A',
+        playerB: 'Joueur B', 
+        pressSpace: 'Appuyez sur ESPACE pour commencer!',
+        gameProgress: 'Jeu en cours! Premier à 10 gagne!',
+        gameStarts: 'Le jeu commence dans',
+        controls: 'Joueur A: Touches W/S | Joueur B: Flèches ↑/↓ | ESPACE: Démarrer/Redémarrer',
+        backMenu: '← Retour au Menu',
+        playerAWins: '🎉 Joueur A Gagne!',
+        playerBWins: '🎉 Joueur B Gagne!',
+        autoRefresh: 'La page va se rafraîchir dans'
+      }
+    };
+
+    function toggleLanguage() {
+      currentLanguage = currentLanguage === 'en' ? 'fr' : 'en';
+      document.getElementById('flagIcon').textContent = currentLanguage === 'en' ? '🇺🇸' : '🇫🇷';
+      document.getElementById('langText').textContent = currentLanguage === 'en' ? 'EN' : 'FR';
+      updateLanguage();
+    }
+
+    function updateLanguage() {
+      const t = translations[currentLanguage];
+      
+      // Update score labels
+      document.querySelector('.score div:first-child').innerHTML = `${t.playerA}: <span id="leftScore">${leftScore}</span>`;
+      document.querySelector('.score div:last-child').innerHTML = `${t.playerB}: <span id="rightScore">${rightScore}</span>`;
+      
+      // Update controls
+      document.querySelector('.controls').textContent = t.controls;
+      
+      // Update back button
+      document.querySelector('.back-button').textContent = t.backMenu;
+      
+      // Update status if needed
+      if (!gameRunning && !gameOver && !countdownActive) {
+        gameStatusElement.textContent = t.pressSpace;
+      }
+    }
+
+    // Get canvas and context
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const leftScoreElement = document.getElementById('leftScore');
+    const rightScoreElement = document.getElementById('rightScore');
+    const gameStatusElement = document.getElementById('gameStatus');
+
+    // Game variables
+    let gameRunning = false;
+    let gameOver = false;
+    let leftScore = 0;
+    let rightScore = 0;
+    let serveDirection = 1; // 1 = right, -1 = left, starts going right
+    let countdownActive = false;
+    let countdown = 0;
+
+    // Ball variables - SIMPLE approach
+    let ballX = canvas.width / 2;
+    let ballY = canvas.height / 2;
+    let ballSpeedX = 0;
+    let ballSpeedY = 0;
+    const BALL_SPEED = 7; // FIXED speed that never changes
+    const ballRadius = 10;
+
+    // Paddle variables
+    const paddleWidth = 15;
+    const paddleHeight = 80;
+    const paddleSpeed = 6;
+
+    let leftPaddleY = canvas.height / 2 - paddleHeight / 2;
+    let rightPaddleY = canvas.height / 2 - paddleHeight / 2;
+    let leftPaddleSpeed = 0;
+    let rightPaddleSpeed = 0;
+
+    // Auto-refresh function
+    function startAutoRefresh() {
+      let refreshCountdown = 5;
+      const t = translations[currentLanguage];
+      const originalMessage = gameStatusElement.textContent; // Store the original win message
+      
+      const refreshInterval = setInterval(() => {
+        gameStatusElement.textContent = `${originalMessage} ${t.autoRefresh} ${refreshCountdown}...`;
+        refreshCountdown--;
+        
+        if (refreshCountdown < 0) {
+          clearInterval(refreshInterval);
+          window.location.reload();
+        }
+      }, 1000);
+    }
+
+    // Controls
+    const keys = {};
+
+    // Event listeners
+    document.addEventListener('keydown', (e) => {
+      keys[e.key] = true;
+      
+      if (e.key === ' ') {
+        e.preventDefault();
+        if (gameOver) {
+          resetGame();
+        } else if (!gameRunning && !countdownActive) {
+          startCountdown(5); // 5-second countdown at start
+        }
+      }
+    });
+
+    document.addEventListener('keyup', (e) => {
+      keys[e.key] = false;
+    });
+
+    // Game functions
+    function startCountdown(seconds) {
+      countdownActive = true;
+      countdown = seconds;
+      gameRunning = false;
+      ballSpeedX = 0;
+      ballSpeedY = 0;
+      
+      const t = translations[currentLanguage];
+      gameStatusElement.textContent = `${t.gameStarts} ${countdown}...`;
+      
+      const countdownInterval = setInterval(() => {
+        countdown--;
+        if (countdown > 0) {
+          gameStatusElement.textContent = `${t.gameStarts} ${countdown}...`;
+        } else {
+          clearInterval(countdownInterval);
+          countdownActive = false;
+          startGame();
+        }
+      }, 1000);
+    }
+
+    function startGame() {
+      gameRunning = true;
+      gameOver = false;
+      
+      // Use alternating serve direction (first serve goes right)
+      ballSpeedX = BALL_SPEED * serveDirection;
+      ballSpeedY = BALL_SPEED * (Math.random() > 0.5 ? 1 : -1);
+      
+      const t = translations[currentLanguage];
+      gameStatusElement.textContent = t.gameProgress;
+    }
+
+    function resetGame() {
+      leftScore = 0;
+      rightScore = 0;
+      leftScoreElement.textContent = leftScore;
+      rightScoreElement.textContent = rightScore;
+      
+      ballX = canvas.width / 2;
+      ballY = canvas.height / 2;
+      ballSpeedX = 0;
+      ballSpeedY = 0;
+      
+      leftPaddleY = canvas.height / 2 - paddleHeight / 2;
+      rightPaddleY = canvas.height / 2 - paddleHeight / 2;
+      
+      serveDirection = 1; // Reset to serve right first
+      
+      gameRunning = false;
+      gameOver = false;
+      const t = translations[currentLanguage];
+      gameStatusElement.textContent = t.pressSpace;
+      updateLanguage(); // Update all text elements
+    }
+
+    function resetBall() {
+      ballX = canvas.width / 2;
+      ballY = canvas.height / 2;
+      
+      // Alternate serve direction after each point
+      serveDirection = -serveDirection; // Switch direction
+      
+      // Start 3-second countdown before next serve
+      startCountdown(3);
+    }
+
+    function updatePaddles() {
+      // Player A controls (W/S)
+      if (keys['w'] || keys['W']) {
+        leftPaddleSpeed = -paddleSpeed;
+      } else if (keys['s'] || keys['S']) {
+        leftPaddleSpeed = paddleSpeed;
+      } else {
+        leftPaddleSpeed = 0;
+      }
+
+      // Player B controls (Arrow keys)
+      if (keys['ArrowUp']) {
+        rightPaddleSpeed = -paddleSpeed;
+      } else if (keys['ArrowDown']) {
+        rightPaddleSpeed = paddleSpeed;
+      } else {
+        rightPaddleSpeed = 0;
+      }
+
+      // Update paddle positions
+      leftPaddleY += leftPaddleSpeed;
+      rightPaddleY += rightPaddleSpeed;
+
+      // Keep paddles in bounds
+      leftPaddleY = Math.max(0, Math.min(canvas.height - paddleHeight, leftPaddleY));
+      rightPaddleY = Math.max(0, Math.min(canvas.height - paddleHeight, rightPaddleY));
+    }
+
+    function updateBall() {
+      if (!gameRunning || gameOver) return;
+
+      // Move ball
+      ballX += ballSpeedX;
+      ballY += ballSpeedY;
+
+      // Top and bottom wall collision
+      if (ballY - ballRadius <= 0 || ballY + ballRadius >= canvas.height) {
+        ballSpeedY = -ballSpeedY;
+      }
+
+      // Left paddle collision
+      if (ballX - ballRadius <= 20 + paddleWidth &&
+          ballY >= leftPaddleY &&
+          ballY <= leftPaddleY + paddleHeight &&
+          ballSpeedX < 0) {
+        ballSpeedX = BALL_SPEED; // Always set to fixed speed
+      }
+
+      // Right paddle collision
+      if (ballX + ballRadius >= canvas.width - 20 - paddleWidth &&
+          ballY >= rightPaddleY &&
+          ballY <= rightPaddleY + paddleHeight &&
+          ballSpeedX > 0) {
+        ballSpeedX = -BALL_SPEED; // Always set to fixed speed
+      }
+
+      // Score when ball goes off screen
+      if (ballX < 0) {
+        rightScore++;
+        rightScoreElement.textContent = rightScore;
+        if (rightScore >= 10) {
+          gameOver = true;
+          gameRunning = false;
+          const t = translations[currentLanguage];
+          gameStatusElement.textContent = t.playerBWins;
+          startAutoRefresh();
+        } else {
+          resetBall();
+        }
+      } else if (ballX > canvas.width) {
+        leftScore++;
+        leftScoreElement.textContent = leftScore;
+        if (leftScore >= 10) {
+          gameOver = true;
+          gameRunning = false;
+          const t = translations[currentLanguage];
+          gameStatusElement.textContent = t.playerAWins;
+          startAutoRefresh();
+        } else {
+          resetBall();
+        }
+      }
+    }
+
+    function draw() {
+      // Clear canvas
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw center line
+      ctx.strokeStyle = '#60f0ff';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([10, 10]);
+      ctx.beginPath();
+      ctx.moveTo(canvas.width / 2, 0);
+      ctx.lineTo(canvas.width / 2, canvas.height);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Draw paddles
+      ctx.fillStyle = '#60f0ff';
+      ctx.fillRect(20, leftPaddleY, paddleWidth, paddleHeight);
+      ctx.fillRect(canvas.width - 20 - paddleWidth, rightPaddleY, paddleWidth, paddleHeight);
+
+      // Draw ball
+      ctx.fillStyle = '#FFD700';
+      ctx.beginPath();
+      ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Draw countdown if active
+      if (countdownActive && countdown > 0) {
+        ctx.font = 'bold 72px Arial';
+        ctx.fillStyle = '#60f0ff';
+        ctx.textAlign = 'center';
+        ctx.fillText(countdown, canvas.width / 2, canvas.height / 2 + 25);
+        
+        // Add glow effect to countdown
+        ctx.shadowColor = '#60f0ff';
+        ctx.shadowBlur = 20;
+        ctx.fillText(countdown, canvas.width / 2, canvas.height / 2 + 25);
+        ctx.shadowBlur = 0;
+      }
+    }
+
+    function gameLoop() {
+      updatePaddles();
+      updateBall();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Start the game loop
+    gameLoop();
+  </script>
+</body>
+</html>

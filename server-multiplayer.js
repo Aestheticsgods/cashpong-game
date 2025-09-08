@@ -34,7 +34,7 @@ wsProvider.on('end', () => {
 const web3 = new Web3(wsProvider);
 
 // ⚙️ Adresse de ton contrat + ABI (UPDATED - Fixed Contract)
-const contractAddress = "0xdb51573EeBE611CEA7e31F0FE2A92Cbb7929b896";
+const contractAddress = "0x2e1dC69a1940903A8Ff6dF8E416A0a0DDD44fb7D";
 
 // SYSTÈME MULTIJOUEUR COMPLET ET STABLE
 class MultiplayerGameServer {
@@ -569,7 +569,7 @@ const cashPongContract = new web3.eth.Contract(contractABI, contractAddress);
 // Configuration des middlewares Express
 app.use(express.static(__dirname));
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "cashpong-multiplayer.html"));
+  res.sendFile(path.join(__dirname, "new", "index.html"));
 });
 
 // Écoute des événements blockchain (intégré au système multijoueur)
@@ -856,7 +856,30 @@ io.on("connection", (socket) => {
       });
     }
   });
-  
+
+  // 🚀 NOUVEAU: Handle winnings received event
+  socket.on("winningsReceived", (data) => {
+    const { roomId, winner, amount } = data;
+    console.log(`💰 [SERVER] Winnings received for room ${roomId}, winner: ${winner}, amount: ${amount}`);
+    
+    // Notify all players in the room that winnings were distributed
+    io.to(roomId).emit("winningsDistributed", {
+      roomId: roomId,
+      winner: winner,
+      amount: amount,
+      message: "Winnings have been distributed. Page will refresh automatically."
+    });
+    
+    // Clean up room data on server
+    const room = gameServer.gameRooms.get(roomId);
+    if (room) {
+      room.isActive = false;
+      gameServer.activeMatches.delete(roomId);
+      gameServer.connectionStats.activeMatches = gameServer.activeMatches.size;
+      console.log(`🧹 [SERVER] Room ${roomId} cleaned up after winnings distribution`);
+    }
+  });
+
   // === GESTION DES DÉCONNEXIONS DE JOUEURS ===
   socket.on("playerQuit", (data) => {
     console.log("🚨 Joueur a quitté :", data);

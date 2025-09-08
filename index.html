@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CashPong</title>
+  <title>Cashpong</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/hadi.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/hadi.png">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
    <!-- Firebase App (compat version) -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -18,7 +21,50 @@
 </head>
 <body>
 
-  <div id="connectedWithDisplay">
+<!-- Logo -->
+<div style="text-align: center; padding: 20px 0;">
+  <img src="hadi.png" alt="Logo" style="height: 120px; width: auto;">
+</div>
+
+<!-- Back to Landing Page Button -->
+<div id="backToHome" style="position: fixed; top: 10px; left: 10px; z-index: 1000;">
+  <button onclick="goHome()" style="
+    background: rgba(96,240,255,0.2);
+    color: #60f0ff;
+    border: 1px solid #60f0ff;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s ease;
+  " onmouseover="this.style.background='#60f0ff'; this.style.color='#1a2233'" 
+     onmouseout="this.style.background='rgba(96,240,255,0.2)'; this.style.color='#60f0ff'">
+    ← Accueil
+  </button>
+</div>
+
+<!-- Language Toggle Button -->
+<div id="languageToggle" style="position: fixed; top: 10px; right: 10px; z-index: 1000;">
+  <button onclick="toggleLanguage()" style="
+    background: rgba(96,240,255,0.2);
+    color: #60f0ff;
+    border: 1px solid #60f0ff;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  " onmouseover="this.style.background='#60f0ff'; this.style.color='#1a2233'" 
+     onmouseout="this.style.background='rgba(96,240,255,0.2)'; this.style.color='#60f0ff'">
+    <span id="flagIcon">🇺🇸</span>
+    <span id="langText">EN</span>
+  </button>
+</div>
+
+  
 </div>
 
   <div id="peerIdDisplay">Ton Peer ID : </div>
@@ -55,7 +101,7 @@
   <!-- 🦊 Section MetaMask - Toujours visible -->
   <div id="metamaskSection">
     <button id="connectWalletBtn">🦊 Connecter Metamask</button>
-    <button id="forceReconnectBtn" class="force-reconnect-btn">🔄 Demo: Force Reconnect</button>
+    <button id="forceReconnectBtn" class="force-reconnect-btn">🔄 Force Reconnect</button>
     <span id="walletAddress"></span>
   </div>
 
@@ -87,7 +133,7 @@
   <div id="claimVictoryControls" style="display: none;">
     <h3>🏆 Réclamer Victoire</h3>
     <p>⚠️ Votre adversaire est inactif depuis plus de 60 secondes</p>
-    <button id="claimVictoryButton" style="background: #28a745; color: white; padding: 10px 20px; font-size: 16px; border: none; border-radius: 5px; cursor: pointer;">
+    <button id="claimVictoryButton">
       🏆 Réclamer Victoire & Récupérer Fonds
     </button>
     <div id="claimVictoryInfo"></div>
@@ -95,17 +141,14 @@
 
   <canvas id="myCanvas" width="800" height="400"></canvas>
 
-  <div id="playButtonContainer" style="position:fixed; bottom:30px; left:50%; transform:translateX(-50%); z-index:1000;">
+  <div id="playButtonContainer" style="position:fixed; bottom:30px; left:50%; transform:translateX(-50%); z-index:1000; text-align:center;">
     <button id="playButton">JOUER</button>
     <div id="waitingForHost" style="display:none; background:rgba(0,0,0,0.8); color:white; padding:10px; border-radius:5px; text-align:center; margin-top:10px;">
       En attente que l'hôte démarre la partie...
     </div>
   </div>
 
-  <div>
-    <button id="resetGameBtn">Nouvelle Partie</button>
-    <button id="leaveMatchBtn">Quitter la partie</button>
-  </div>
+
 
   <div id="gameOver"></div>
 
@@ -132,6 +175,235 @@
   </div>
 </div>
 
+  <script>
+    // Language data for game page
+    const languages = {
+      fr: {
+        backButton: "← Accueil",
+        peerIdDisplay: "Ton Peer ID : ",
+        usernamePlaceholder: "YOUR ID",
+        emailPlaceholder: "Adresse e-mail",
+        passwordPlaceholder: "Mot de passe",
+        loginBtn: "Se connecter",
+        logoutBtn: "Déconnecter",
+        showCreateAccountBtn: "Créer un compte",
+        resetPasswordLink: "Mot de passe oublié ?",
+        forfeitBtn: "Forfait",
+        newUsernamePlaceholder: "Nom d'identifiant (ex: Jony)",
+        newEmailPlaceholder: "Adresse e-mail",
+        newPasswordPlaceholder: "Mot de passe",
+        createAccountBtn: "Créer mon compte",
+        hideCreateAccountBtn: "Annuler",
+        connectWalletBtn: "🦊 Connecter Metamask",
+        forceReconnectBtn: "🔄 Force Reconnect",
+        createRoomTitle: "🏠 Créer une Room",
+        otherPeerPlaceholder: "Adresse Ethereum de l'adversaire",
+        betAmountPlaceholder: "Montant à miser (ETH)",
+        betButton: "Créer Room & Miser",
+        joinRoomTitle: "🎮 Rejoindre une Room",
+        roomIdPlaceholder: "Room ID (ex: 1754854660945)",
+        joinBetDisplay: "💰 Mise requise : ",
+        joinRoomButton: "Rejoindre Room & Payer",
+        claimVictoryTitle: "🏆 Réclamer Victoire",
+        claimVictoryWarning: "⚠️ Votre adversaire est inactif depuis plus de 60 secondes",
+        claimVictoryButton: "🏆 Réclamer Victoire & Récupérer Fonds",
+        playButton: "JOUER",
+        waitingForHost: "En attente que l'hôte démarre la partie...",
+        paymentMessage: "Félicitations ! Vous avez gagné 🎉 Cliquez ci-dessous pour recevoir votre gain :",
+        validatePaymentBtn: "💰 Valider le paiement",
+        chatHeader: "Chat",
+        chatPlaceholder: "Écrivez un message...",
+        sendMessageBtn: "Envoyer",
+        opponentDisconnected: "🏆 ADVERSAIRE DÉCONNECTÉ - VOUS GAGNEZ !",
+        forfeitClaimAvailable: "🏆 ADVERSAIRE DÉCONNECTÉ - VOUS GAGNEZ ! Réclamation de forfait disponible dans :",
+        forfeitClaimReady: "🏆 ADVERSAIRE DÉCONNECTÉ - VOUS GAGNEZ ! Cliquez sur le bouton ci-dessous pour réclamer votre paiement de victoire.",
+        seconds: "secondes",
+        // Nouveaux messages de jeu
+        launchGame: "🚀 LANCER LA PARTIE",
+        waitingCreator: "⏳ EN ATTENTE DU CRÉATEUR",
+        waitingOpponent: "⏳ En attente que l'adversaire rejoigne...",
+        onlyCreatorCanStart: "Seul le créateur de la room peut lancer la partie",
+        onlyCreatorCanStartAlert: "❌ Seul le créateur de la room peut lancer la partie.",
+        youWin: "VOUS GAGNEZ !",
+        youLose: "VOUS PERDEZ !",
+        gameResult: "Résultat du jeu",
+        playButton: "JOUER"
+      },
+      en: {
+        backButton: "← Home",
+        peerIdDisplay: "Your Peer ID: ",
+        usernamePlaceholder: "YOUR ID",
+        emailPlaceholder: "Email address",
+        passwordPlaceholder: "Password",
+        loginBtn: "Login",
+        logoutBtn: "Logout",
+        showCreateAccountBtn: "Create account",
+        resetPasswordLink: "Forgot password?",
+        forfeitBtn: "Forfeit",
+        newUsernamePlaceholder: "Username (ex: Jony)",
+        newEmailPlaceholder: "Email address",
+        newPasswordPlaceholder: "Password",
+        createAccountBtn: "Create my account",
+        hideCreateAccountBtn: "Cancel",
+        connectWalletBtn: "🦊 Connect Metamask",
+        forceReconnectBtn: "🔄 Force Reconnect",
+        createRoomTitle: "🏠 Create a Room",
+        otherPeerPlaceholder: "Opponent's Ethereum address",
+        betAmountPlaceholder: "Amount to bet (ETH)",
+        betButton: "Create Room & Bet",
+        joinRoomTitle: "🎮 Join a Room",
+        roomIdPlaceholder: "Room ID (ex: 1754854660945)",
+        joinBetDisplay: "💰 Required bet: ",
+        joinRoomButton: "Join Room & Pay",
+        claimVictoryTitle: "🏆 Claim Victory",
+        claimVictoryWarning: "⚠️ Your opponent has been inactive for more than 60 seconds",
+        claimVictoryButton: "🏆 Claim Victory & Recover Funds",
+        playButton: "PLAY",
+        waitingForHost: "Waiting for host to start the game...",
+        paymentMessage: "Congratulations! You won 🎉 Click below to receive your winnings:",
+        validatePaymentBtn: "💰 Validate payment",
+        chatHeader: "Chat",
+        chatPlaceholder: "Write a message...",
+        sendMessageBtn: "Send",
+        opponentDisconnected: "🏆 OPPONENT DISCONNECTED - YOU WIN!",
+        forfeitClaimAvailable: "🏆 OPPONENT DISCONNECTED - YOU WIN! Forfeit claim available in:",
+        forfeitClaimReady: "🏆 OPPONENT DISCONNECTED - YOU WIN! Click the button below to claim your victory payment.",
+        seconds: "seconds",
+        // Game messages
+        launchGame: "🚀 START GAME",
+        waitingCreator: "⏳ WAITING FOR CREATOR",
+        waitingOpponent: "⏳ Waiting for opponent to join...",
+        onlyCreatorCanStart: "Only the room creator can start the game",
+        onlyCreatorCanStartAlert: "❌ Only the room creator can start the game.",
+        youWin: "YOU WIN!",
+        youLose: "YOU LOSE!",
+        gameResult: "Game Result",
+        playButton: "PLAY"
+      }
+    };
+
+    let currentLanguage = 'fr';
+
+    // Make languages globally available
+    window.languages = languages;
+
+    function toggleLanguage() {
+      currentLanguage = currentLanguage === 'fr' ? 'en' : 'fr';
+      updateLanguage();
+      localStorage.setItem('gameLanguage', currentLanguage);
+    }
+
+    function updateLanguage() {
+      const lang = languages[currentLanguage];
+      
+      // Update flag and language indicator
+      document.getElementById('flagIcon').textContent = currentLanguage === 'fr' ? '🇺🇸' : '🇫🇷';
+      document.getElementById('langText').textContent = currentLanguage === 'fr' ? 'EN' : 'FR';
+      
+      // Update back button
+      const backButton = document.querySelector('#backToHome button');
+      if (backButton) backButton.textContent = lang.backButton;
+      
+      // Update text content
+      if (document.getElementById('peerIdDisplay')) document.getElementById('peerIdDisplay').textContent = lang.peerIdDisplay;
+      if (document.getElementById('loginBtn')) document.getElementById('loginBtn').textContent = lang.loginBtn;
+      if (document.getElementById('logoutBtn')) document.getElementById('logoutBtn').textContent = lang.logoutBtn;
+      if (document.getElementById('showCreateAccountBtn')) document.getElementById('showCreateAccountBtn').textContent = lang.showCreateAccountBtn;
+      if (document.getElementById('resetPasswordLink')) document.getElementById('resetPasswordLink').textContent = lang.resetPasswordLink;
+      if (document.getElementById('forfeitBtn')) document.getElementById('forfeitBtn').textContent = lang.forfeitBtn;
+      if (document.getElementById('createAccountBtn')) document.getElementById('createAccountBtn').textContent = lang.createAccountBtn;
+      if (document.getElementById('hideCreateAccountBtn')) document.getElementById('hideCreateAccountBtn').textContent = lang.hideCreateAccountBtn;
+      if (document.getElementById('connectWalletBtn')) document.getElementById('connectWalletBtn').textContent = lang.connectWalletBtn;
+      if (document.getElementById('forceReconnectBtn')) document.getElementById('forceReconnectBtn').textContent = lang.forceReconnectBtn;
+      if (document.getElementById('betButton')) document.getElementById('betButton').textContent = lang.betButton;
+      if (document.getElementById('joinRoomButton')) document.getElementById('joinRoomButton').textContent = lang.joinRoomButton;
+      if (document.getElementById('claimVictoryButton')) document.getElementById('claimVictoryButton').textContent = lang.claimVictoryButton;
+      if (document.getElementById('playButton')) document.getElementById('playButton').textContent = lang.playButton;
+      if (document.getElementById('validatePaymentBtn')) document.getElementById('validatePaymentBtn').textContent = lang.validatePaymentBtn;
+      if (document.getElementById('sendMessageBtn')) document.getElementById('sendMessageBtn').textContent = lang.sendMessageBtn;
+      
+      // Update placeholders
+      if (document.getElementById('username')) document.getElementById('username').placeholder = lang.usernamePlaceholder;
+      if (document.getElementById('email')) document.getElementById('email').placeholder = lang.emailPlaceholder;
+      if (document.getElementById('password')) document.getElementById('password').placeholder = lang.passwordPlaceholder;
+      if (document.getElementById('newUsername')) document.getElementById('newUsername').placeholder = lang.newUsernamePlaceholder;
+      if (document.getElementById('newEmail')) document.getElementById('newEmail').placeholder = lang.newEmailPlaceholder;
+      if (document.getElementById('newPassword')) document.getElementById('newPassword').placeholder = lang.newPasswordPlaceholder;
+      if (document.getElementById('otherPeerId')) document.getElementById('otherPeerId').placeholder = lang.otherPeerPlaceholder;
+      if (document.getElementById('betAmount')) document.getElementById('betAmount').placeholder = lang.betAmountPlaceholder;
+      if (document.getElementById('roomIdToJoin')) document.getElementById('roomIdToJoin').placeholder = lang.roomIdPlaceholder;
+      if (document.getElementById('chatInput')) document.getElementById('chatInput').placeholder = lang.chatPlaceholder;
+      
+      // Update titles and headers
+      const createRoomTitle = document.querySelector('#peerControls h3');
+      if (createRoomTitle) createRoomTitle.textContent = lang.createRoomTitle;
+      
+      const joinRoomTitle = document.querySelector('#joinRoomControls h3');
+      if (joinRoomTitle) joinRoomTitle.textContent = lang.joinRoomTitle;
+      
+      const claimVictoryTitle = document.querySelector('#claimVictoryControls h3');
+      if (claimVictoryTitle) claimVictoryTitle.textContent = lang.claimVictoryTitle;
+      
+      const claimVictoryWarning = document.querySelector('#claimVictoryControls p');
+      if (claimVictoryWarning) claimVictoryWarning.textContent = lang.claimVictoryWarning;
+      
+      const chatHeader = document.querySelector('.chat-header');
+      if (chatHeader) chatHeader.textContent = lang.chatHeader;
+      
+      // Update other elements
+      if (document.getElementById('waitingForHost')) document.getElementById('waitingForHost').textContent = lang.waitingForHost;
+      if (document.getElementById('paymentMessage')) document.getElementById('paymentMessage').textContent = lang.paymentMessage;
+      
+      // Update join bet display text (keeping the amount)
+      const joinBetDisplay = document.querySelector('#joinBetDisplay');
+      if (joinBetDisplay && joinBetDisplay.textContent) {
+        const amount = joinBetDisplay.querySelector('#joinBetAmountDisplay')?.textContent || '-';
+        joinBetDisplay.innerHTML = `${lang.joinBetDisplay}<span id="joinBetAmountDisplay">${amount}</span> ETH`;
+      }
+      
+      // Update game buttons with current state
+      if (typeof updateGameButtonTexts === 'function') {
+        updateGameButtonTexts();
+      }
+    }
+
+    // Initialize language from localStorage or default to French
+    function initLanguage() {
+      const savedLanguage = localStorage.getItem('gameLanguage');
+      if (savedLanguage && languages[savedLanguage]) {
+        currentLanguage = savedLanguage;
+      }
+      updateLanguage();
+    }
+
+    // Navigation function to go back to landing page
+    function goHome() {
+      window.location.href = '/';
+    }
+    
+    // Initialize language when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      initLanguage();
+    });
+  </script>
+  
+  <!-- Copyright Footer -->
+  <div style="
+    position: fixed; 
+    bottom: 0; 
+    left: 0; 
+    right: 0; 
+    background: rgba(26, 34, 51, 0.9); 
+    color: #60f0ff; 
+    text-align: center; 
+    padding: 8px 0; 
+    font-size: 12px; 
+    border-top: 1px solid rgba(96, 240, 255, 0.2);
+    z-index: 999;
+  ">
+    © 2025 Cashpong. All rights reserved. | Powered by Blockchain Technology
+  </div>
+  
   <script src="script-li-khask-tchuf.js"></script>
 </body>
 </html>

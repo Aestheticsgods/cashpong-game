@@ -1,3 +1,11 @@
+/**
+ * Cashpong - Blockchain Multiplayer Pong Game
+ * Copyright (c) 2025 Cashpong. All rights reserved.
+ * 
+ * A real-time multiplayer Pong game with cryptocurrency betting
+ * Built with Node.js, Socket.IO, and Ethereum blockchain integration
+ */
+
 const express = require("express");
 const http = require("http");
 const path = require("path");
@@ -34,7 +42,7 @@ wsProvider.on('end', () => {
 const web3 = new Web3(wsProvider);
 
 // ⚙️ Adresse de ton contrat + ABI (UPDATED - Fixed Contract)
-const contractAddress = "0xdb51573EeBE611CEA7e31F0FE2A92Cbb7929b896"; // ← nouveau contrat avec logique corrigée
+const contractAddress = "0x2e1dC69a1940903A8Ff6dF8E416A0a0DDD44fb7D"; // ← nouveau contrat avec logique corrigée
 
 // SYSTÈME MULTIJOUEUR COMPLET ET STABLE
 class MultiplayerGameServer {
@@ -224,8 +232,8 @@ class MultiplayerGameServer {
     game.gameState.ball.x = game.canvasWidth / 2;
     game.gameState.ball.y = game.canvasHeight / 2;
     
-    // Start countdown
-    let countdownValue = 5;
+    // Start countdown - 3 seconds for points after first round
+    let countdownValue = 3;
     
     const countdownInterval = setInterval(() => {
       // Broadcast countdown to all players in the room
@@ -1258,12 +1266,30 @@ cashPongContract.events.PlayerJoined()
 let roomCounter = 1;
 
 
-// Define the root route BEFORE static middleware to override default index.html
+// Define routes BEFORE static middleware to override default behavior
+// Landing page route - serve the new landing page
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "index-production.html"));
+  res.sendFile(path.join(__dirname, "new", "index.html"));
 });
 
+// Game route - serve the actual game
+app.get("/game", (req, res) => {
+  res.sendFile(path.join(__dirname, "new", "index.html"));
+});
+
+// Rules route - serve the rules page
+app.get("/rules", (req, res) => {
+  res.sendFile(path.join(__dirname, "new", "rules.html"));
+});
+
+// Solo game route - serve the NEW working solo game
+app.get("/solo-game", (req, res) => {
+  res.sendFile(path.join(__dirname, "solo-game.html"));
+});
+
+// Serve static files from both root and new directories
 app.use(express.static(__dirname));
+app.use('/new', express.static(path.join(__dirname, 'new')));
 
 const userSockets = {};
 
@@ -1555,6 +1581,36 @@ socket.on("sync", (data) => {
     // Ignorer les anciens événements accepted, refused, etc.
   });
 
+  // Gestionnaire pour rafraîchissement simultané après victoire
+  socket.on("gameComplete", (data) => {
+    if (data.type === "refreshBoth" && data.roomId) {
+      console.log(`🔄 [REFRESH] Signal de rafraîchissement simultané pour room ${data.roomId}`);
+      console.log(`🔄 [REFRESH] Gagnant: ${data.winner}`);
+      
+      // 🎯 NOUVEAU: Envoyer l'événement gameEnded AVANT le rafraîchissement
+      console.log(`🎯 [GAME_END] Appel de endServerGame pour room ${data.roomId} avec gagnant ${data.winner}`);
+      gameServer.endServerGame(data.roomId, data.winner);
+      
+      // Trouver tous les utilisateurs connectés et leur envoyer le signal
+      let signalsSent = 0;
+      Object.keys(users).forEach(userKey => {
+        const user = users[userKey];
+        if (user && user.socket && user.socket.id !== socket.id) {
+          // Envoyer le signal à tous les autres joueurs
+          user.socket.emit("gameComplete", data);
+          console.log(`🔄 [REFRESH] Signal envoyé à ${userKey} (socketId: ${user.socket.id})`);
+          signalsSent++;
+        }
+      });
+      
+      console.log(`🔄 [REFRESH] Total de signaux envoyés: ${signalsSent}`);
+      
+      // Aussi broadcaster à tous les sockets connectés comme solution de secours
+      socket.broadcast.emit("gameComplete", data);
+      console.log(`🔄 [REFRESH] Signal également diffusé via broadcast`);
+    }
+  });
+
   // Track when players manually join rooms (via blockchain transaction)
   socket.on("playerJoinedRoom", ({ roomId, playerAddress }) => {
     console.log(`🎯 [MANUAL JOIN] Joueur ${playerAddress} a rejoint manuellement la room ${roomId}`);
@@ -1673,14 +1729,18 @@ socket.on("startServerGame", (data) => {
     const requesterAddress = socket.ethAddress?.toLowerCase();
     
     // Debug logging
+    console.log(`[DEBUG] startServerGame request from socket ${socket.id}`);
     console.log(`[DEBUG] Socket info - ID: ${socket.id}, ethAddress: "${socket.ethAddress}", username: "${socket.username}"`);
     console.log(`[DEBUG] Room info - Room ID: ${roomId}, PlayerA: "${room.playerA}", PlayerB: "${room.playerB}"`);
+    console.log(`[DEBUG] Requester address: "${requesterAddress}"`);
+    console.log(`[DEBUG] Room creator address: "${room.playerA.toLowerCase()}"`);
+    console.log(`[DEBUG] Addresses match: ${requesterAddress === room.playerA.toLowerCase()}`);
     
     // Verify that only the room creator (playerA) can start the game
     if (!requesterAddress || requesterAddress !== room.playerA.toLowerCase()) {
       console.warn(`❌ Only room creator can start the game. Requester: "${requesterAddress}", Creator: "${room.playerA}"`);
       socket.emit("gameStartDenied", {
-        message: "Seul le créateur de la room peut lancer la partie.",
+        message: `Seul le créateur de la room peut lancer la partie. Your address: ${requesterAddress}, Creator: ${room.playerA}`,
         roomId: roomId
       });
       return;
@@ -1781,7 +1841,28 @@ socket.on("endServerGame", (data) => {
   });
 });
 
-// ...
+// 🚀 NOUVEAU: Handle winnings received event
+socket.on("winningsReceived", (data) => {
+  const { roomId, winner, amount } = data;
+  console.log(`💰 [SERVER] Winnings received for room ${roomId}, winner: ${winner}, amount: ${amount}`);
+  
+  // Notify all players in the room that winnings were distributed
+  io.to(roomId).emit("winningsDistributed", {
+    roomId: roomId,
+    winner: winner,
+    amount: amount,
+    message: "Winnings have been distributed. Page will refresh automatically."
+  });
+  
+  // Clean up room data on server
+  const room = gameServer.gameRooms.get(roomId);
+  if (room) {
+    room.isActive = false;
+    gameServer.activeMatches.delete(roomId);
+    gameServer.connectionStats.activeMatches = gameServer.activeMatches.size;
+    console.log(`🧹 [SERVER] Room ${roomId} cleaned up after winnings distribution`);
+  }
+});
 
  socket.on("disconnect", () => {
   console.log(`🔌 Utilisateur déconnecté : ${socket.username || "inconnu"}`);

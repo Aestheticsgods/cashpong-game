@@ -1,3 +1,19 @@
+let gameLoopInterval = null; // Ensure this is defined globally
+
+// === FIX FOR BIGINT SERIALIZATION ===
+// Override JSON.stringify to handle BigInt values automatically
+(function() {
+  const originalStringify = JSON.stringify;
+  JSON.stringify = function(value, replacer, space) {
+    return originalStringify(value, function(key, val) {
+      if (typeof val === 'bigint') {
+        return val.toString();
+      }
+      return replacer ? replacer(key, val) : val;
+    }, space);
+  };
+})();
+
 // === VARIABLES GLOBALES DU JEU ===
 const canvas = document.getElementById("myCanvas");
 const ctx = canvas.getContext("2d");
@@ -44,7 +60,70 @@ const winnerBalances = new Map();
 
 // Use global CONTRACT_ADDRESS from event-handlers.js
 function getContractAddress() {
-  return window.CONTRACT_ADDRESS || "0xdb51573EeBE611CEA7e31F0FE2A92Cbb7929b896";
+  return window.CONTRACT_ADDRESS || "0x2e1dC69a1940903A8Ff6dF8E416A0a0DDD44fb7D";
+}
+
+// Function to get current language translations
+function getCurrentLanguageText() {
+  const currentLanguage = localStorage.getItem('gameLanguage') || 'fr';
+  // Access the languages object from index.html if available
+  if (typeof window.languages !== 'undefined') {
+    return window.languages[currentLanguage];
+  }
+  // Fallback translations if window.languages is not available
+  const fallbackLanguages = {
+    fr: {
+      opponentDisconnected: "🏆 ADVERSAIRE DÉCONNECTÉ - VOUS GAGNEZ !",
+      forfeitClaimAvailable: "🏆 ADVERSAIRE DÉCONNECTÉ - VOUS GAGNEZ ! Réclamation de forfait disponible dans :",
+      forfeitClaimReady: "🏆 ADVERSAIRE DÉCONNECTÉ - VOUS GAGNEZ ! Cliquez sur le bouton ci-dessous pour réclamer votre paiement de victoire.",
+      seconds: "secondes",
+      launchGame: "🚀 LANCER LA PARTIE",
+      waitingCreator: "⏳ EN ATTENTE DU CRÉATEUR",
+      waitingOpponent: "⏳ En attente que l'adversaire rejoigne...",
+      onlyCreatorCanStart: "Seul le créateur de la room peut lancer la partie",
+      onlyCreatorCanStartAlert: "❌ Seul le créateur de la room peut lancer la partie.",
+      youWin: "VOUS GAGNEZ !",
+      youLose: "VOUS PERDEZ !",
+      gameResult: "Résultat du jeu",
+      playButton: "JOUER"
+    },
+    en: {
+      opponentDisconnected: "🏆 OPPONENT DISCONNECTED - YOU WIN!",
+      forfeitClaimAvailable: "🏆 OPPONENT DISCONNECTED - YOU WIN! Forfeit claim available in:",
+      forfeitClaimReady: "🏆 OPPONENT DISCONNECTED - YOU WIN! Click the button below to claim your victory payment.",
+      seconds: "seconds",
+      launchGame: "🚀 START GAME",
+      waitingCreator: "⏳ WAITING FOR CREATOR",
+      waitingOpponent: "⏳ Waiting for opponent to join...",
+      onlyCreatorCanStart: "Only the room creator can start the game",
+      onlyCreatorCanStartAlert: "❌ Only the room creator can start the game.",
+      youWin: "YOU WIN!",
+      youLose: "YOU LOSE!",
+      gameResult: "Game Result",
+      playButton: "PLAY"
+    }
+  };
+  return fallbackLanguages[currentLanguage];
+}
+
+// Function to update game button texts when language changes
+function updateGameButtonTexts() {
+  const currentRoomId = localStorage.getItem("currentRoomId");
+  const playButton = document.getElementById("playButton");
+  
+  if (playButton && currentRoomId) {
+    // In multiplayer mode
+    if (isRoomCreator) {
+      playButton.textContent = getCurrentLanguageText().launchGame;
+      playButton.title = getCurrentLanguageText().onlyCreatorCanStart;
+    } else {
+      playButton.textContent = getCurrentLanguageText().waitingCreator;
+      playButton.title = getCurrentLanguageText().onlyCreatorCanStart;
+    }
+  } else if (playButton) {
+    // Solo mode
+    playButton.textContent = getCurrentLanguageText().playButton || "JOUER";
+  }
 }
 
 function getEthAddress(username) {
@@ -259,6 +338,121 @@ function drawCountdown() {
   }
 }
 
+function drawForfeitState() {
+  if (!window.forfeitState || !window.forfeitState.active) return;
+  
+  // Draw semi-transparent background overlay
+  ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Draw main title
+  ctx.font = "bold 32px Arial";
+  ctx.fillStyle = "#FFD700";
+  ctx.textAlign = "center";
+  ctx.fillText("🏆 OPPONENT DISCONNECTED", canvas.width / 2, canvas.height / 2 - 80);
+  
+  // Draw "YOU WIN!" message
+  ctx.font = "bold 28px Arial";
+  ctx.fillStyle = "#00FF00";
+  ctx.fillText("YOU WIN!", canvas.width / 2, canvas.height / 2 - 40);
+  
+  if (window.forfeitState.canClaim) {
+    // Show claim button when countdown is finished
+    ctx.font = "bold 24px Arial";
+    ctx.fillStyle = "#00FFFF";
+    ctx.fillText("READY TO CLAIM!", canvas.width / 2, canvas.height / 2);
+    
+    // Draw larger, more prominent clickable button area
+    const buttonWidth = 400; // Increased from 300
+    const buttonHeight = 80;  // Increased from 60
+    const buttonX = canvas.width / 2 - buttonWidth / 2;
+    const buttonY = canvas.height / 2 + 20;
+    
+    // Check if mouse is hovering over button for visual feedback
+    let isHovering = false;
+    if (window.forfeitButton) {
+      const mouseX = window.lastMouseX || 0;
+      const mouseY = window.lastMouseY || 0;
+      const padding = 20;
+      isHovering = mouseX >= (buttonX - padding) && mouseX <= (buttonX + buttonWidth + padding) &&
+                   mouseY >= (buttonY - padding) && mouseY <= (buttonY + buttonHeight + padding);
+    }
+    
+    // Button background (brighter when hovering)
+    ctx.fillStyle = isHovering ? "#5CBF54" : "#4CAF50";
+    ctx.fillRect(buttonX, buttonY, buttonWidth, buttonHeight);
+    
+    // Button border (thicker when hovering)
+    ctx.strokeStyle = "#45a049";
+    ctx.lineWidth = isHovering ? 4 : 3;
+    ctx.strokeRect(buttonX, buttonY, buttonWidth, buttonHeight);
+    
+    // Button text - larger and more prominent
+    ctx.font = "bold 22px Arial";
+    ctx.fillStyle = "white";
+    ctx.fillText("🏆 CLICK TO CLAIM VICTORY", canvas.width / 2, buttonY + buttonHeight / 2 + 8);
+    
+    // Store button coordinates for click detection
+    window.forfeitButton = {
+      x: buttonX,
+      y: buttonY,
+      width: buttonWidth,
+      height: buttonHeight
+    };
+    
+    // Debug log for button coordinates
+    console.log("🎯 [FORFEIT] Button coordinates:", window.forfeitButton);
+  } else {
+    // Show countdown
+    ctx.font = "bold 24px Arial";
+    ctx.fillStyle = "#FF6B35";
+    ctx.fillText("Forfeit claim available in:", canvas.width / 2, canvas.height / 2);
+    
+    // Show countdown number
+    ctx.font = "bold 48px Arial";
+    ctx.fillStyle = "#00FFFF";
+    ctx.fillText(`${window.forfeitState.countdown}s`, canvas.width / 2, canvas.height / 2 + 50);
+  }
+}
+
+function drawWinLoseState() {
+  if (!window.winLoseState || !window.winLoseState.active) return;
+  
+  console.log("🎯 [WIN/LOSE] Drawing win/lose state on canvas:", window.winLoseState);
+  
+  // Draw semi-transparent background overlay
+  ctx.fillStyle = window.winLoseState.isWinner ? "rgba(0, 150, 0, 0.9)" : "rgba(150, 0, 0, 0.9)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Draw border
+  ctx.strokeStyle = "#FFD700";
+  ctx.lineWidth = 8;
+  ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+  
+  // Draw main message
+  ctx.font = "bold 64px Arial";
+  ctx.fillStyle = window.winLoseState.isWinner ? "#FFD700" : "#FFFFFF";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  
+  // Add text shadow effect
+  ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+  ctx.shadowBlur = 10;
+  ctx.shadowOffsetX = 4;
+  ctx.shadowOffsetY = 4;
+  
+  const message = window.winLoseState.isWinner ? `🎉 ${window.winLoseState.message}` : window.winLoseState.message;
+  ctx.fillText(message, canvas.width / 2, canvas.height / 2);
+  
+  // Reset shadow
+  ctx.shadowColor = "transparent";
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
+  
+  console.log("🎯 [WIN/LOSE] Win/lose state drawn on canvas");
+}
+
 // === UTILITY FUNCTIONS ===
 function updatePlayButtonForRole() {
   const currentRoomId = localStorage.getItem("currentRoomId");
@@ -267,19 +461,22 @@ function updatePlayButtonForRole() {
   if (currentRoomId) {
     // In multiplayer mode
     if (isRoomCreator) {
-      playButton.textContent = "🚀 LANCER LA PARTIE";
-      playButton.style.backgroundColor = "#4CAF50";
+      playButton.textContent = getCurrentLanguageText().launchGame;
       playButton.title = "Cliquez pour démarrer la partie";
+      playButton.classList.remove('disabled');
+      playButton.disabled = false;
     } else {
-      playButton.textContent = "⏳ EN ATTENTE DU CRÉATEUR";
-      playButton.style.backgroundColor = "#888";
-      playButton.title = "Seul le créateur de la room peut lancer la partie";
+      playButton.textContent = getCurrentLanguageText().waitingCreator;
+      playButton.title = getCurrentLanguageText().onlyCreatorCanStart;
+      playButton.classList.add('disabled');
+      playButton.disabled = true;
     }
   } else {
     // Solo mode
     playButton.textContent = "JOUER";
-    playButton.style.backgroundColor = "#4CAF50";
     playButton.title = "Cliquez pour jouer en solo";
+    playButton.classList.remove('disabled');
+    playButton.disabled = false;
   }
 }
 
@@ -314,14 +511,55 @@ function moveBall() {
 
   if (x - ballRadius < 0) {
     rightScore++;
+    
+    // Call scorePoint contract function for right player
+    if (cashPongContract && window.currentRoomId && connectedWallet) {
+      const rightPlayerAddress = isHost ? connectedWallet : window.opponentEthAddress;
+      console.log("🏓 [RIGHT] Calling scorePoint for right player:", rightPlayerAddress);
+      
+      cashPongContract.methods.scorePoint(window.currentRoomId, rightPlayerAddress)
+        .send({ from: connectedWallet })
+        .on('transactionHash', (hash) => {
+          console.log("✅ [RIGHT] scorePoint transaction hash:", hash);
+        })
+        .on('receipt', (receipt) => {
+          console.log("✅ [RIGHT] scorePoint transaction confirmed:", receipt);
+        })
+        .on('error', (error) => {
+          console.error("❌ [RIGHT] Error calling scorePoint:", error);
+        });
+    }
+    
     checkGameOver();
     if (!gameOver) startCountdown();
   }
 
   if (x + ballRadius > canvas.width) {
     leftScore++;
+    
+    // Call scorePoint contract function for left player
+    if (cashPongContract && window.currentRoomId && connectedWallet) {
+      const leftPlayerAddress = isHost ? window.opponentEthAddress : connectedWallet;
+      console.log("🏓 [LEFT] Calling scorePoint for left player:", leftPlayerAddress);
+      
+      cashPongContract.methods.scorePoint(window.currentRoomId, leftPlayerAddress)
+        .send({ from: connectedWallet })
+        .on('transactionHash', (hash) => {
+          console.log("✅ [LEFT] scorePoint transaction hash:", hash);
+        })
+        .on('receipt', (receipt) => {
+          console.log("✅ [LEFT] scorePoint transaction confirmed:", receipt);
+        })
+        .on('error', (error) => {
+          console.error("❌ [LEFT] Error calling scorePoint:", error);
+        });
+    }
+    
     checkGameOver();
-    if (!gameOver) startCountdown();
+    if (!gameOver) {
+  // After every point, use startCountdown (3 seconds)
+  startCountdown();
+    }
   }
 }
 
@@ -367,14 +605,51 @@ async function checkGameOver() {
     const paymentMessage = document.getElementById("paymentMessage");
     const validateBtn = document.getElementById("validatePaymentBtn");
 
-    if (
-      winnerAddress &&
-      connectedWallet.toLowerCase() === winnerAddress.toLowerCase()
-    ) {
-      paymentMessage.textContent =
-        "🏆 Félicitations ! Le paiement a été effectué automatiquement par le smart contract.";
+    // Always show payment section and claim button for the winner
+    if (connectedWallet && winnerAddress && connectedWallet.toLowerCase() === winnerAddress.toLowerCase()) {
+      paymentMessage.textContent = "🏆 Félicitations ! Cliquez ci-dessous pour recevoir votre gain.";
       paymentSection.style.display = "block";
-      validateBtn.style.display = "none";
+      validateBtn.style.display = "block";
+      validateBtn.onclick = async function() {
+        // Use the same transaction logic as forfeit
+        try {
+          paymentMessage.textContent = "⏳ Transaction en cours...";
+          const tx = await cashPongContract.methods.claimVictoryByForfeit(roomId).send({
+            from: connectedWallet
+          });
+          paymentMessage.textContent = "✅ Paiement reçu ! Transaction: " + tx.transactionHash;
+          validateBtn.style.display = "none";
+          
+          // Marquer que le jeu est terminé AVANT d'envoyer le signal
+          window.gameAlreadyEnded = true;
+          
+          // Envoyer signal de rafraîchissement simultané aux deux joueurs
+          console.log("🔄 [REFRESH] Envoi du signal de rafraîchissement simultané (victoire normale)...");
+          if (socket && socket.connected && window.currentRoomId) {
+            socket.emit("gameComplete", {
+              type: "refreshBoth",
+              roomId: window.currentRoomId.toString(), // Convert BigInt to string
+              winner: connectedWallet
+            });
+          }
+          
+          alert("🏆 Paiement reçu avec succès ! La page va se rafraîchir.");
+          
+          // Rafraîchir après un délai plus long pour s'assurer que le signal arrive
+          setTimeout(() => {
+            console.log("🔄 [REFRESH] Exécution du rafraîchissement maintenant...");
+            try {
+              window.location.reload(true);
+            } catch (refreshErr) {
+              console.error("❌ [REFRESH] Erreur lors du rafraîchissement:", refreshErr);
+              window.location.href = window.location.href;
+            }
+          }, 2000);
+          
+        } catch (err) {
+          paymentMessage.textContent = "❌ Erreur lors du paiement: " + err.message;
+        }
+      };
     } else {
       paymentSection.style.display = "none";
     }
@@ -382,20 +657,41 @@ async function checkGameOver() {
 }
 
 function displayWinner(winner, forfeit = false) {
-  const gameOverDiv = document.getElementById("gameOver");
-  const isMe = winner === currentUsername;
-
-  if (forfeit) {
-    gameOverDiv.innerText = isMe
-      ? "🏆 Tu as gagné par forfait ! L'adversaire a quitté le match."
-      : `🏆 ${winner} a gagné par forfait.`;
+  console.log("🎯 [WIN/LOSE] displayWinner called with:", { winner, forfeit, currentUsername });
+  
+  // Determine if player won based on the winner parameter
+  let isMe = false;
+  if (winner === "PLAYER_WON") {
+    isMe = true;
+  } else if (winner === "PLAYER_LOST") {
+    isMe = false;
   } else {
-    gameOverDiv.innerText = isMe
-      ? "🎉 Tu as gagné la partie ! 🏆"
-      : `🏆 ${winner} a gagné la partie !`;
+    // Fallback to old logic
+    isMe = winner === currentUsername;
   }
+  
+  console.log("🎯 [WIN/LOSE] isMe:", isMe, "winner:", winner);
 
-  gameOverDiv.style.display = "block";
+  // Set win/lose state to draw on canvas instead of creating overlay
+  window.winLoseState = {
+    active: true,
+    isWinner: isMe,
+    message: isMe ? getCurrentLanguageText().youWin : getCurrentLanguageText().youLose,
+    forfeit: forfeit
+  };
+  
+  console.log("🎯 [WIN/LOSE] Win/Lose state set for canvas:", window.winLoseState);
+  
+  // Remove overlay after 10 seconds
+  setTimeout(() => {
+    if (window.winLoseState) {
+      console.log("🎯 [WIN/LOSE] Removing win/lose state from canvas after 10 seconds");
+      window.winLoseState.active = false;
+      window.winLoseState = null;
+    }
+  }, 10000);
+  
+  console.log("🎯 [WIN/LOSE] Victory/defeat display created on canvas successfully");
 }
 
 function checkVictory() {
@@ -405,8 +701,12 @@ function checkVictory() {
     dy = 0;
 
     const winner = leftScore >= 10 ? "👈 Joueur Gauche" : "👉 Joueur Droit";
-    document.getElementById("gameOver").innerText = `🏆 ${winner} gagne la partie !`;
-    document.getElementById("gameOver").style.display = "block";
+    // Remove popup notification - only use overlay
+    // document.getElementById("gameOver").innerText = `🏆 ${winner} gagne la partie !`;
+    // document.getElementById("gameOver").style.display = "block";
+    
+    // Use the overlay instead
+    displayWinner(winner, false);
   } else {
     startCountdown();
   }
@@ -415,12 +715,16 @@ function checkVictory() {
 function checkWin() {
   if (leftScore >= 10 || rightScore >= 10) {
     let winner = leftScore >= 10 ? "Gauche" : "Droite";
-    document.getElementById("gameOver").innerText = `🏆 ${winner} gagne la partie !`;
-    document.getElementById("gameOver").style.display = "block";
+    // Remove popup notification - only use overlay
+    // document.getElementById("gameOver").innerText = `🏆 ${winner} gagne la partie !`;
+    // document.getElementById("gameOver").style.display = "block";
 
     gameIsOver = true;
     dx = 0;
     dy = 0;
+
+    // Use the overlay instead
+    displayWinner(winner, false);
 
     document.getElementById("resetGameBtn").style.display = "inline-block";
     document.getElementById("leaveMatchBtn").style.display = "inline-block";
@@ -434,8 +738,8 @@ function restartBall() {
   const dirX = Math.random() > 0.5 ? 1 : -1;
   const dirY = Math.random() > 0.5 ? 1 : -1;
 
-  dx = 7 * dirX;
-  dy = 7 * dirY;
+  dx = 12 * dirX;
+  dy = 12 * dirY;
 }
 
 function movePaddles() {
@@ -460,8 +764,8 @@ function resetBall() {
     countdown--;
     if (countdown <= 0) {
       clearInterval(countdownInterval);
-      dx = 7;
-      dy = 7;
+      dx = 12;
+      dy = 12;
     }
   }, 1000);
 }
@@ -512,14 +816,13 @@ function startCountdown() {
 
   countdownInterval = setInterval(() => {
     countdown--;
-
+    console.log(`[CLIENT] Countdown: ${countdown}`);
     if (countdown <= 0) {
       clearInterval(countdownInterval);
       countdown = 0;
-
       if (!gameOver) {
-        dx = 7;
-        dy = 7;
+        dx = 12;
+        dy = 12;
       }
     }
   }, 1000);
@@ -536,7 +839,7 @@ function handlePlayClick() {
     // THIS IS A MULTIPLAYER GAME - CHECK IF USER IS ROOM CREATOR
     
     if (!isRoomCreator) {
-      alert("❌ Seul le créateur de la room peut lancer la partie.");
+      alert(getCurrentLanguageText().onlyCreatorCanStartAlert);
       document.getElementById("playButton").style.display = "block"; // Show button again
       return;
     }
@@ -579,8 +882,8 @@ function handlePlayClick() {
       if (!gameOver && matchStarted) {
         const dirX = Math.random() > 0.5 ? 1 : -1;
         const dirY = Math.random() > 0.5 ? 1 : -1;
-        dx = 7 * dirX;
-        dy = 7 * dirY;
+        dx = 12 * dirX;
+        dy = 12 * dirY;
       }
     }
   }, 1000);
@@ -906,7 +1209,7 @@ function connectToSocketServer(username) {
         // Notify the server that this player has joined the room
         if (socket) {
           socket.emit("playerJoinedRoom", {
-            roomId: roomId,
+            roomId: roomId.toString(), // Convert BigInt to string
             playerAddress: connectedWallet
           });
           console.log(`📡 Notification envoyée au serveur: joueur ${connectedWallet} a rejoint la room ${roomId}`);
@@ -986,38 +1289,132 @@ function connectToSocketServer(username) {
     console.log("✅ [CLIENT] Victoire automatique confirmée - fonds récupérés");
   });
 
-  // Handler pour forfait automatique de l'adversaire (fallback - réclamation manuelle)
+  // Handler pour forfait automatique de l'adversaire - IMMEDIATE AUTOMATIC FORFAIT TRANSACTION
   socket.on("opponentQuit", async (data) => {
-    console.log("🚨 [CLIENT] opponentQuit reçu (fallback) :", data);
+    console.log("🚨 [CLIENT] opponentQuit reçu - vérification si le jeu est déjà terminé...", data);
+    
+    // VÉRIFICATION RENFORCÉE: Ne pas traiter le forfait si le jeu est déjà terminé
+    if (gameOver || window.gameAlreadyEnded || window.forfeitInProgress) {
+      console.log("⚠️ [CLIENT] Jeu déjà terminé ou forfait en cours - ignorant l'événement opponentQuit");
+      console.log("🔍 [CLIENT] État actuel:", { 
+        gameOver, 
+        gameAlreadyEnded: window.gameAlreadyEnded, 
+        forfeitInProgress: window.forfeitInProgress 
+      });
+      return;
+    }
+    
+    console.log("🚨 [CLIENT] Jeu actif - déclenchement du forfait:", data);
     const { roomId, quittingPlayerAddress, message } = data;
 
     // CORRECTION: Mettre à jour le room ID actuel pour la réclamation
     window.currentRoomId = roomId;
     console.log("🔄 [CLIENT] Room ID mis à jour pour réclamation:", roomId);
 
-    // Afficher une notification à l'utilisateur
-    alert(`🚨 ${message}`);
+    // Set forfeit flag to prevent gameEnded handler from interfering
+    window.forfeitInProgress = true;
+
+    // STOP THE GAME IMMEDIATELY - Same as normal game ending
+    isServerGame = false;
+    matchStarted = false;
+    gameOver = true;
     
-    // Mettre à jour l'interface
-    const matchInfo = document.getElementById("matchInfo");
-    if (matchInfo) {
-      matchInfo.innerText = `🚨 ${message}`;
-      matchInfo.style.color = "orange";
+    // Stop the game loop immediately
+    if (gameLoopInterval) {
+      clearInterval(gameLoopInterval);
+      gameLoopInterval = null;
+      console.log("🛑 [FORFEIT] Game loop interval cleared");
     }
     
-    // Afficher immédiatement les contrôles de réclamation
-    const claimControls = document.getElementById("claimVictoryControls");
-    if (claimControls) {
-      claimControls.style.display = "block";
-      console.log("✅ [CLIENT] Bouton de réclamation de victoire affiché suite au quit de l'adversaire");
+    // Hide all game controls
+    try {
+      const playButton = document.getElementById("playButton");
+      if (playButton) playButton.style.display = "none";
+      
+      const leaveMatchBtn = document.getElementById("leaveMatchBtn");
+      if (leaveMatchBtn) leaveMatchBtn.style.display = "none";
+    } catch (error) {
+      console.warn("⚠️ Error hiding game controls:", error);
     }
     
-    // Optionnel: Arrêter le jeu
-    if (typeof gameOver !== 'undefined') {
-      gameOver = true;
+    // Show game over message
+    try {
+      const gameOverDiv = document.getElementById("gameOver");
+      if (gameOverDiv) {
+        gameOverDiv.style.display = "block";
+        gameOverDiv.innerText = getCurrentLanguageText().opponentDisconnected;
+        gameOverDiv.style.color = "#00FF00";
+      }
+    } catch (error) {
+      console.warn("⚠️ Error updating gameOver div:", error);
     }
     
-    console.log("✅ [CLIENT] Gestion du forfait adversaire terminée");
+    // Show disconnection message and start 60-second forfeit countdown
+    alert(`🚨 Player disconnected! You won! Waiting 60 seconds before you can claim your victory payment.`);
+    
+    // Show forfeit information on the canvas instead of HTML controls
+    console.log("🏆 [FORFEIT] Opponent disconnected! Starting 60-second countdown...");
+    
+    // Set forfeit state to draw on canvas
+    window.forfeitState = {
+      active: true,
+      countdown: 60,
+      canClaim: false
+    };
+    
+    console.log("🎯 [FORFEIT] Initial forfeit state set:", window.forfeitState);
+    
+    // Start 60-second forfeit countdown
+    let forfeitCountdown = 60;
+    
+    const forfeitInterval = setInterval(() => {
+      forfeitCountdown--;
+      
+      // Update the forfeit state for canvas drawing
+      if (window.forfeitState) {
+        window.forfeitState.countdown = forfeitCountdown;
+        console.log("⏰ [FORFEIT] Countdown updated:", forfeitCountdown);
+      }
+      
+      // When countdown reaches 0, enable the claim button
+      if (forfeitCountdown <= 0) {
+        clearInterval(forfeitInterval);
+        
+        // Update forfeit state to show claim button
+        if (window.forfeitState) {
+          window.forfeitState.canClaim = true;
+          console.log("✅ [FORFEIT] canClaim set to true, forfeitState:", window.forfeitState);
+        }
+        
+        console.log("✅ [FORFEIT] 60-second countdown completed - claim button enabled");
+      }
+    }, 1000); // Update every second
+    
+    console.log("✅ [CLIENT] Forfeit handling completed - 60-second countdown started");
+  });
+
+  // Gestionnaire pour rafraîchissement simultané après victoire
+  socket.on("gameComplete", (data) => {
+    console.log("🔄 [REFRESH] Signal de rafraîchissement simultané reçu:", data);
+    
+    if (data.type === "refreshBoth") {
+      console.log("🔄 [REFRESH] Traitement du signal de rafraîchissement...");
+      console.log("🔄 [REFRESH] Room ID du signal:", data.roomId);
+      console.log("🔄 [REFRESH] Room ID actuelle:", window.currentRoomId);
+      
+      // Rafraîchir immédiatement pour synchroniser les deux joueurs
+      setTimeout(() => {
+        console.log("🔄 [REFRESH] Rafraîchissement simultané en cours...");
+        try {
+          window.location.reload(true);
+        } catch (refreshErr) {
+          console.error("❌ [REFRESH] Erreur lors du rafraîchissement simultané:", refreshErr);
+          window.location.href = window.location.href;
+        }
+      }, 500); // Délai très court pour synchronisation
+    } else {
+      console.log("⚠️ [REFRESH] Type de signal non reconnu:", data.type);
+    }
   });
 
   // ANCIEN SYSTÈME DE CHALLENGE SUPPRIMÉ
@@ -1025,13 +1422,13 @@ function connectToSocketServer(username) {
 
   socket.on("event", (data) => {
     if (data.type === "busy") {
-      alert(`❌ ${data.from} est déjà connecté avec un autre joueur.`);
+      alert("❌ " + data.from + " est déjà connecté avec un autre joueur.");
 
       opponentUsername = null;
       isConnected = false;
 
       document.getElementById("connectedWithDisplay").innerText = "";
-      document.getElementById("peerIdDisplay").innerText = `Ton Peer ID : ${currentUsername}`;
+      document.getElementById("peerIdDisplay").innerText = "Ton Peer ID : " + currentUsername;
 
       document.getElementById("leaveMatchBtn").style.display = "none";
       document.getElementById("resetGameBtn").style.display = "none";
@@ -1044,7 +1441,7 @@ function connectToSocketServer(username) {
     if (data.type === "refused") {
       isConnected = false;
       opponentUsername = null;
-      alert(`${data.from} a refusé le combat.`);
+      alert(data.from + " a refusé le combat.");
       updatePeerDisplay();
     } else if (data.type === "paddleMove" && isHost) {
       leftPaddle.y = data.y;
@@ -1052,7 +1449,7 @@ function connectToSocketServer(username) {
       if (!isHost && !awaitingRematch) {
         awaitingRematch = true;
 
-        const accept = confirm(`${data.from} veut rejouer. Accepter ?`);
+        const accept = confirm(data.from + " veut rejouer. Accepter ?");
 
         if (accept) {
           socket.emit("event", {
@@ -1087,7 +1484,7 @@ function connectToSocketServer(username) {
           console.log("🚀 handlePlayClick lancé. Countdown:", countdown);
 
           document.getElementById("connectedWithDisplay").innerText = "";
-          document.getElementById("peerIdDisplay").innerText = `Ton Peer ID : ${currentUsername}`;
+          document.getElementById("peerIdDisplay").innerText = "Ton Peer ID : " + currentUsername;
           document.getElementById("resetGameBtn").style.display = "none";
           document.getElementById("leaveMatchBtn").style.display = "none";
           document.getElementById("playButton").style.display = "block";
@@ -1098,7 +1495,7 @@ function connectToSocketServer(username) {
         }, 2000);
       }
     } else if (data.type === "newGameAccepted") {
-      alert(`✅ ${data.from} a accepté de rejouer. Cliquez sur "JOUER" pour commencer.`);
+      alert("✅ " + data.from + " a accepté de rejouer. Cliquez sur \"JOUER\" pour commencer.");
       resetGame(false);
 
       leftScore = 0;
@@ -1113,14 +1510,14 @@ function connectToSocketServer(username) {
         document.getElementById("playButton").style.display = "block";
       }
     } else if (data.type === "newGameRefused") {
-      alert(`❌ ${data.from} a refusé de rejouer. Retour en mode solo.`);
+      alert("❌ " + data.from + " a refusé de rejouer. Retour en mode solo.");
 
       isConnected = false;
       isHost = false;
       opponentUsername = null;
 
       document.getElementById("connectedWithDisplay").innerText = "";
-      document.getElementById("peerIdDisplay").innerText = `Ton Peer ID : ${currentUsername}`;
+      document.getElementById("peerIdDisplay").innerText = "Ton Peer ID : " + currentUsername;
 
       document.getElementById("resetGameBtn").style.display = "none";
       document.getElementById("leaveMatchBtn").style.display = "none";
@@ -1144,7 +1541,7 @@ function connectToSocketServer(username) {
         document.getElementById("leaveMatchBtn").style.display = "inline-block";
       }
     } else if (data.type === "leftMatch") {
-      alert(`${data.from} s'est déconnecté.`);
+      alert(data.from + " s'est déconnecté.");
 
       isConnected = true;
       isHost = false;
@@ -1226,7 +1623,14 @@ function connectToSocketServer(username) {
     
     // Store player names for score display
     multiplayerPlayerA = data.playerAName || "Joueur A";
-    multiplayerPlayerB = data.playerBName || "Joueur B";
+    // If playerBName looks like a wallet address, try to use a username if available
+    if (data.playerBName && !data.playerBName.startsWith('0x')) {
+      multiplayerPlayerB = data.playerBName;
+    } else if (data.playerBUsername) {
+      multiplayerPlayerB = data.playerBUsername;
+    } else {
+      multiplayerPlayerB = "Joueur B";
+    }
     
     // Set up client for server-authoritative mode
     isConnected = true;
@@ -1241,27 +1645,31 @@ function connectToSocketServer(username) {
     matchStarted = true;
     
     // Show game UI
-    document.getElementById("playButton").style.display = "none";
-    document.getElementById("leaveMatchBtn").style.display = "inline-block";
+  const playButton = document.getElementById("playButton");
+  if (playButton) playButton.style.display = "none";
+  const leaveMatchBtn = document.getElementById("leaveMatchBtn");
+  if (leaveMatchBtn) leaveMatchBtn.style.display = "inline-block";
     
     // 🚀 AJOUTER LE COUNTDOWN DE 5 SECONDES POUR LE MODE MULTIJOUEUR
-    console.log("⏰ Starting 5-second countdown for multiplayer game");
-    countdown = 5;
-    clearInterval(countdownInterval);
-
-    countdownInterval = setInterval(() => {
-      countdown--;
-      console.log(`⏰ Multiplayer countdown: ${countdown}`);
-
-      if (countdown <= 0) {
-        clearInterval(countdownInterval);
-        countdown = 0;
-        console.log("🚀 Multiplayer countdown finished - game ready!");
-      }
-    }, 1000);
+  console.log("⏰ Starting 5-second countdown for multiplayer game");
+  startFirstRoundCountdown();
+// Countdown for first round only
+function startFirstRoundCountdown() {
+  countdown = 5;
+  clearInterval(countdownInterval);
+  countdownInterval = setInterval(() => {
+    countdown--;
+    console.log(`⏰ Multiplayer countdown: ${countdown}`);
+    if (countdown <= 0) {
+      clearInterval(countdownInterval);
+      countdown = 0;
+      console.log("🚀 Multiplayer countdown finished - game ready!");
+    }
+  }, 1000);
+}
     
     // Log instead of alert to not block the countdown view
-    console.log(`🎮 Server game started! You are ${playerRole.toUpperCase()}. ${isPlayerA ? 'Use W/S keys to control left paddle' : 'Use Arrow Up/Down to control right paddle'}. Game starts in 5 seconds!`);
+    console.log(`🎮 Server game started! You are ${playerRole ? playerRole.toUpperCase() : 'UNKNOWN'}. ${isPlayerA ? 'Use W/S keys to control left paddle' : 'Use Arrow Up/Down to control right paddle'}. Game starts in 5 seconds!`);
     
     // Show a brief non-blocking notification
     const notification = document.createElement('div');
@@ -1271,7 +1679,7 @@ function connectToSocketServer(username) {
       border-radius: 5px; font-size: 14px; max-width: 300px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.3);
     `;
-    notification.innerHTML = `🎮 Partie lancée!<br>Vous êtes ${playerRole.toUpperCase()}<br>${isPlayerA ? 'W/S pour la raquette gauche' : 'Flèches pour la raquette droite'}`;
+    notification.innerHTML = `🎮 Partie lancée!<br>Vous êtes ${playerRole ? playerRole.toUpperCase() : 'JOUEUR'}<br>${isPlayerA ? 'W/S pour la raquette gauche' : 'Flèches pour la raquette droite'}`;
     document.body.appendChild(notification);
     
     // Remove notification after 3 seconds
@@ -1330,17 +1738,140 @@ function connectToSocketServer(username) {
   socket.on("gameEnded", (data) => {
     console.log("🏆 [CLIENT] Game ended:", data);
     
-    isServerGame = false;
-    matchStarted = false;
+    // Marquer que le jeu est officiellement terminé IMMÉDIATEMENT
+    window.gameAlreadyEnded = true;
     gameOver = true;
+    matchStarted = false;
+    
+    // If forfeit is in progress, ignore gameEnded to prevent conflicts
+    if (window.forfeitInProgress) {
+      console.log("🚫 [CLIENT] Ignoring gameEnded - forfeit already in progress");
+      return;
+    }
     
     const myAddress = connectedWallet?.toLowerCase();
     const didIWin = myAddress === data.winner.toLowerCase();
     
-    alert(`🏆 Game Over!\n\n${didIWin ? 'YOU WON!' : 'You lost'}\n\nFinal Score: ${data.finalScores.playerA} - ${data.finalScores.playerB}`);
+    console.log("🎯 [GAME END] myAddress:", myAddress);
+    console.log("🎯 [GAME END] data.winner:", data.winner);
+    console.log("🎯 [GAME END] didIWin:", didIWin);
     
-    document.getElementById("playButton").style.display = "block";
-    document.getElementById("leaveMatchBtn").style.display = "none";
+    // 🎯 TECHNIQUE FORFAIT: AFFICHAGE IMMÉDIAT DE L'OVERLAY !
+    const victoryMessage = didIWin ? "🎉 YOU WON!" : "💔 YOU LOST";
+    console.log("🎯 [IMMEDIATE OVERLAY] Showing:", victoryMessage);
+    
+    // TEST: Afficher overlay immédiatement SANS vérifications
+    console.log("🔥 [OVERLAY TEST] Force displaying overlay NOW!");
+    setTimeout(() => {
+      // Afficher l'overlay sur canvas IMMÉDIATEMENT
+      if (didIWin) {
+        displayWinner("PLAYER_WON", false);
+      } else {
+        displayWinner("PLAYER_LOST", false);
+      }
+    }, 100); // Small delay to ensure DOM is ready
+    
+    isServerGame = false;
+    matchStarted = false;
+    gameOver = true;
+    
+    // Stop the game loop immediately
+    if (gameLoopInterval) {
+      clearInterval(gameLoopInterval);
+      gameLoopInterval = null;
+      console.log("🛑 Game loop interval cleared in gameEnded handler");
+    }
+    
+    console.log(`🏆 Game Over! ${didIWin ? 'YOU WON!' : 'You lost'} - Final Score: ${data.finalScores.playerA} - ${data.finalScores.playerB}`);
+    
+    // Hide all game controls with error handling
+    try {
+      const playButton = document.getElementById("playButton");
+      if (playButton) playButton.style.display = "none";
+      
+      const leaveMatchBtn = document.getElementById("leaveMatchBtn");
+      if (leaveMatchBtn) leaveMatchBtn.style.display = "none";
+    } catch (error) {
+      console.warn("⚠️ Error hiding game controls:", error);
+    }
+    
+    // Show loading message with robust error handling
+    try {
+      const gameOverDiv = document.getElementById("gameOver");
+      if (gameOverDiv && gameOverDiv.style) {
+        gameOverDiv.style.display = "block";
+        if (didIWin) {
+          gameOverDiv.innerText = "💰 Click OK above to claim your winnings!";
+          gameOverDiv.style.color = "#00FF00";
+        } else {
+          gameOverDiv.innerText = "💰 Waiting for winner to claim winnings...";
+          gameOverDiv.style.color = "#FFD700";
+        }
+      } else {
+        console.warn("⚠️ gameOver div not found or not accessible");
+      }
+    } catch (error) {
+      console.warn("⚠️ Error updating gameOver div:", error);
+    }
+    
+    // If I won, call claimVictoryByForfeit to get winnings with MetaMask popup
+    if (didIWin && cashPongContract && window.currentRoomId) {
+      console.log("🏆 I won! Calling claimVictoryByForfeit to claim winnings...");
+      
+      // Wait a moment to ensure the game state is properly updated
+      setTimeout(async () => {
+        try {
+          const roomId = window.currentRoomId;
+          console.log("🎯 [WINNER] Calling claimVictoryByForfeit for room:", roomId);
+          
+          const tx = await cashPongContract.methods.claimVictoryByForfeit(roomId).send({
+            from: connectedWallet,
+            gas: 300000,
+            gasPrice: web3.utils.toWei('50', 'gwei')
+          });
+          
+          console.log("✅ [WINNER] Winnings claimed successfully:", tx.transactionHash);
+          alert("🏆 Congratulations! Your winnings have been claimed and distributed to your wallet!");
+          
+          // Marquer que le jeu est terminé AVANT d'envoyer le signal
+          window.gameAlreadyEnded = true;
+          
+          // Envoyer signal de rafraîchissement simultané aux deux joueurs
+          console.log("🔄 [REFRESH] Envoi du signal de rafraîchissement simultané...");
+          if (socket && socket.connected) {
+            socket.emit("gameComplete", {
+              type: "refreshBoth",
+              roomId: roomId.toString(), // Convert BigInt to string
+              winner: connectedWallet
+            });
+          }
+          
+          // Rafraîchir après un délai plus long pour s'assurer que le signal arrive
+          setTimeout(() => {
+            console.log("🔄 [REFRESH] Exécution du rafraîchissement automatique...");
+            try {
+              window.location.reload(true);
+            } catch (refreshErr) {
+              console.error("❌ [REFRESH] Erreur lors du rafraîchissement:", refreshErr);
+              window.location.href = window.location.href;
+            }
+          }, 2000); // 2 secondes pour laisser plus de temps au signal
+          
+        } catch (error) {
+          console.error("❌ [WINNER] Error claiming winnings:", error);
+          
+          // If claimVictoryByForfeit fails due to time condition, try alternative approach
+          if (error.message.includes("Match still active")) {
+            console.log("ℹ️ [WINNER] Match still active, trying alternative claim method...");
+            alert("🏆 Game Over! Your winnings should be available to claim. Please check your wallet.");
+          } else {
+            alert("❌ Error claiming winnings: " + error.message);
+          }
+        }
+      }, 2000); // Wait 2 seconds to ensure game state is properly updated
+    } else if (!didIWin) {
+      console.log("⏳ I lost, waiting for winner to claim winnings...");
+    }
   });
 
   socket.on("gameStartDenied", (data) => {
@@ -1639,8 +2170,45 @@ function listenContractEvents(contract) {
     console.log(`💼 Solde AVANT paiement : ${web3.utils.fromWei(balanceBefore, "ether")} ETH`);
   });
 
-  tryListen("VictoryByForfeit", (event) => {
+  tryListen("VictoryByForfeit", async (event) => {
     console.log("🏳️ VictoryByForfeit :", event.returnValues);
+    
+    const { roomId, winner } = event.returnValues;
+    
+    // Check if this is the current user
+    if (connectedWallet.toLowerCase() === winner.toLowerCase()) {
+      console.log("🏆 [WINNER] VictoryByForfeit event received for me!");
+      
+      // Clear room data
+      localStorage.removeItem("currentRoomId");
+      localStorage.removeItem("role");
+      window.currentRoomId = null;
+      window.opponentEthAddress = null;
+      
+      // Show success message and refresh page
+      alert("🏆 Congratulations! Your winnings have been successfully claimed and distributed to your wallet!\n\nThe page will refresh in 3 seconds...");
+      
+      setTimeout(() => {
+        console.log("🔄 Auto-refreshing page after winnings claim...");
+        window.location.reload();
+      }, 3000);
+    } else {
+      console.log("⏳ [LOSER] VictoryByForfeit event received for opponent");
+      
+      // Clear room data for loser too
+      localStorage.removeItem("currentRoomId");
+      localStorage.removeItem("role");
+      window.currentRoomId = null;
+      window.opponentEthAddress = null;
+      
+      // Show message and refresh page
+      alert("💰 The winner has claimed their winnings!\n\nThe page will refresh in 3 seconds...");
+      
+      setTimeout(() => {
+        console.log("🔄 Auto-refreshing page after opponent claimed winnings...");
+        window.location.reload();
+      }, 3000);
+    }
   });
 
   tryListen("OwnerForcedEnd", (event) => {
@@ -1648,20 +2216,20 @@ function listenContractEvents(contract) {
   });
 
   tryListen("WinningsPaid", async (event) => {
-    const { player, amount } = event.returnValues;
+    const { roomId, winner, amount } = event.returnValues;
 
-    const balanceAfter = await web3Socket.eth.getBalance(player);
+    const balanceAfter = await web3Socket.eth.getBalance(winner);
     const amountInEth = web3.utils.fromWei(amount, "ether");
 
-    console.log(`💰 Solde APRÈS paiement : ${amountInEth} ETH`);
+    console.log(`💰 WinningsPaid event: Room ${roomId}, Winner ${winner}, Amount ${amountInEth} ETH`);
 
-    if (connectedWallet.toLowerCase() === player.toLowerCase()) {
-      alert(`🏆 Bravo ! Vous avez reçu automatiquement ${amountInEth} ETH !`);
+    if (connectedWallet.toLowerCase() === winner.toLowerCase()) {
+      console.log("🏆 [WINNER] WinningsPaid event received for me!");
     }
 
     if (connectedWallet.toLowerCase() === ownerAddress.toLowerCase()) {
       const commission = parseFloat(amountInEth) / 9;
-      alert(`💼 Commission reçue : ~${commission.toFixed(6)} ETH`);
+      console.log(`💼 Commission received: ~${commission.toFixed(6)} ETH`);
     }
   });
 }
@@ -1828,7 +2396,7 @@ async function handlePlayerQuit() {
           // Notifier le serveur que le forfait a été effectué
           if (socket && socket.connected) {
             socket.emit("forfeitCompleted", {
-              roomId: window.currentRoomId,
+              roomId: window.currentRoomId ? window.currentRoomId.toString() : null,
               forfeitingPlayer: connectedWallet,
               opponentAddress: window.opponentEthAddress
             });
@@ -1840,7 +2408,7 @@ async function handlePlayerQuit() {
           // Si le contrat échoue, notifier quand même l'adversaire
           if (socket && socket.connected) {
             socket.emit("playerQuit", {
-              roomId: window.currentRoomId,
+              roomId: window.currentRoomId ? window.currentRoomId.toString() : null,
               quittingPlayer: connectedWallet,
               opponentAddress: window.opponentEthAddress
             });
@@ -2057,8 +2625,8 @@ async function claimVictoryManually() {
         from: checksummedAddress
       });
       console.log("⛽ [MANUAL] Gas estimé:", gasEstimate);
-      // Ajouter une marge de sécurité de 20%
-      gasEstimate = Math.floor(gasEstimate * 1.2);
+      // Ajouter une marge de sécurité de 20% - Convert BigInt to Number for calculation
+      gasEstimate = Math.floor(Number(gasEstimate) * 1.2);
     } catch (gasErr) {
       console.warn("⚠️ [MANUAL] Erreur lors de l'estimation du gas:", gasErr);
       // Utiliser une valeur par défaut si l'estimation échoue
@@ -2070,8 +2638,8 @@ async function claimVictoryManually() {
     try {
       gasPrice = await web3.eth.getGasPrice();
       console.log("💰 [MANUAL] Prix du gas actuel:", gasPrice);
-      // Ajouter une marge pour accélérer la transaction
-      gasPrice = Math.floor(gasPrice * 1.1);
+      // Ajouter une marge pour accélérer la transaction - Convert BigInt to Number for calculation
+      gasPrice = Math.floor(Number(gasPrice) * 1.1);
     } catch (gasPriceErr) {
       console.warn("⚠️ [MANUAL] Erreur lors de l'obtention du prix du gas:", gasPriceErr);
       // Utiliser une valeur par défaut
@@ -2092,27 +2660,39 @@ async function claimVictoryManually() {
 
     console.log("✅ [MANUAL] Victoire réclamée avec succès:", tx.transactionHash);
     
-    alert("🏆 Victoire réclamée avec succès ! Les fonds ont été distribués.");
+    // Clear forfeit state from canvas since claim was successful
+    if (window.forfeitState) {
+      window.forfeitState.active = false;
+      window.forfeitButton = null;
+      console.log("🎯 [FORFEIT] Forfeit state cleared from canvas");
+    }
     
-    // Mettre à jour l'interface
-    document.getElementById("matchInfo").innerText = "🏆 Victoire réclamée ! Fonds récupérés.";
-    document.getElementById("gameOver").style.display = "block";
-    document.getElementById("gameOver").innerText = "🏆 VICTOIRE RÉCLAMÉE !";
+    console.log("🔄 [REFRESH] Démarrage du processus de rafraîchissement...");
+    alert("🏆 Victoire réclamée avec succès ! Les fonds ont été distribués. La page va se rafraîchir.");
     
-    // Masquer les contrôles de réclamation
-    document.getElementById("claimVictoryControls").style.display = "none";
-
-    // Réinitialiser pour une nouvelle partie
-    window.currentRoomId = null;
-    window.opponentEthAddress = null;
-    localStorage.removeItem("currentRoomId");
-    localStorage.removeItem("role");
-
-    // Réafficher les contrôles pour une nouvelle partie
-    document.getElementById("peerControls").style.display = "block";
-    document.getElementById("joinRoomControls").style.display = "block";
-    document.getElementById("betButton").disabled = false;
-    document.getElementById("betButton").innerText = "Créer Room & Miser";
+    // Marquer que le jeu est terminé AVANT d'envoyer le signal
+    window.gameAlreadyEnded = true;
+    
+    // Envoyer signal de rafraîchissement simultané aux deux joueurs
+    console.log("🔄 [REFRESH] Envoi du signal de rafraîchissement simultané (forfait)...");
+    if (socket && socket.connected && window.currentRoomId) {
+      socket.emit("gameComplete", {
+        type: "refreshBoth",
+        roomId: window.currentRoomId.toString(), // Convert BigInt to string
+        winner: connectedWallet
+      });
+    }
+    
+    // Rafraîchir après un délai plus long pour s'assurer que le signal arrive
+    setTimeout(() => {
+      console.log("🔄 [REFRESH] Exécution du rafraîchissement maintenant...");
+      try {
+        window.location.reload(true);
+      } catch (refreshErr) {
+        console.error("❌ [REFRESH] Erreur lors du rafraîchissement:", refreshErr);
+        window.location.href = window.location.href;
+      }
+    }, 2000); // 2 secondes pour s'assurer que le signal arrive
 
   } catch (err) {
     console.error("❌ [MANUAL] Erreur lors de la réclamation :", err);
@@ -2325,7 +2905,7 @@ async function joinRoomManually() {
     // Notify the server that this player has joined the room
     if (socket) {
       socket.emit("playerJoinedRoom", {
-        roomId: roomIdInput,
+        roomId: roomIdInput.toString(), // Ensure it's a string
         playerAddress: connectedWallet
       });
       console.log(`📡 Notification envoyée au serveur: joueur ${connectedWallet} a rejoint la room ${roomIdInput}`);
@@ -2470,7 +3050,7 @@ async function onBetButtonClick() {
           💰 Mise : ${betAmount} ETH
         </div>
         <div style="margin-top: 10px; color: #888; font-style: italic;">
-          ⏳ En attente que l'adversaire rejoigne...
+          ${getCurrentLanguageText().waitingOpponent}
         </div>
       </div>
     `;
@@ -2583,6 +3163,8 @@ setInterval(() => {
   drawPaddle(rightPaddle);
   drawScores();
   drawCountdown();
+  drawForfeitState(); // Draw forfeit overlay on canvas
+  drawWinLoseState(); // Draw win/lose overlay on canvas
   
   // SERVER-AUTHORITATIVE MODE: Only render, don't update physics
   if (isServerGame) {
@@ -2594,14 +3176,17 @@ setInterval(() => {
   moveBall();
   movePaddles();
 
-  if (!isHost && isConnected) {
+  if (!isHost && isConnected && (window.opponentEthAddress || opponentUsername)) {
     // Send paddle movement to opponent (use ETH address for targeting)
-    socket.emit("event", {
-      type: "paddleMove",
-      from: connectedWallet?.toLowerCase() || currentUsername,
-      to: window.opponentEthAddress?.toLowerCase() || opponentUsername?.toLowerCase(),
-      y: leftPaddle.y
-    });
+    const targetAddress = window.opponentEthAddress?.toLowerCase() || opponentUsername?.toLowerCase();
+    if (targetAddress) {
+      socket.emit("event", {
+        type: "paddleMove",
+        from: connectedWallet?.toLowerCase() || currentUsername,
+        to: targetAddress,
+        y: leftPaddle.y
+      });
+    }
   }
   syncHost();
 }, 1000 / 60);
@@ -2762,7 +3347,10 @@ window.addEventListener("load", () => {
 
 window.onload = async function () {
   startInactivityMonitor();
-  document.getElementById("leaveMatchBtn").style.display = "none";
+  const leaveMatchBtn = document.getElementById("leaveMatchBtn");
+  if (leaveMatchBtn) {
+    leaveMatchBtn.style.display = "none";
+  }
   
   // Restore room creator status from localStorage
   const currentRoomId = localStorage.getItem("currentRoomId");
@@ -2777,12 +3365,12 @@ window.onload = async function () {
   // Set up chat event listeners
   const sendMessageBtn = document.getElementById('sendMessageBtn');
   const chatInput = document.getElementById('chatInput');
-  
   if (sendMessageBtn) {
     sendMessageBtn.addEventListener('click', window.sendMessage);
     console.log('✅ Chat send button event listener added');
+  } else {
+    console.warn('⚠️ sendMessageBtn not found in DOM');
   }
-  
   if (chatInput) {
     chatInput.addEventListener('keypress', function(e) {
       if (e.key === 'Enter') {
@@ -2790,6 +3378,8 @@ window.onload = async function () {
       }
     });
     console.log('✅ Chat input enter key listener added');
+  } else {
+    console.warn('⚠️ chatInput not found in DOM');
   }
 
   // Set up claim victory button event listener
@@ -2798,6 +3388,81 @@ window.onload = async function () {
     claimVictoryBtn.addEventListener('click', claimVictoryManually);
     console.log('✅ Claim victory button event listener added');
   }
+
+  // Set up validate payment button event listener (for forfeit claims)
+  const validatePaymentBtn = document.getElementById('validatePaymentBtn');
+  if (validatePaymentBtn) {
+    validatePaymentBtn.addEventListener('click', claimVictoryManually);
+    console.log('✅ Validate payment button event listener added');
+  }
+  
+  // Set up canvas click handler for forfeit button
+  canvas.addEventListener('click', function(event) {
+    console.log("🖱️ [CLICK] Canvas clicked, event:", event);
+    
+    if (window.forfeitState && window.forfeitState.canClaim && window.forfeitButton) {
+      const rect = canvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      
+      console.log("🖱️ [CLICK] Click coordinates:", { x, y });
+      console.log("🖱️ [CLICK] Canvas rect:", rect);
+      console.log("🖱️ [CLICK] Button area:", window.forfeitButton);
+      
+      // Make the clickable area larger and more generous - add padding around button
+      const padding = 20; // Extra clickable area around the button
+      const minX = window.forfeitButton.x - padding;
+      const maxX = window.forfeitButton.x + window.forfeitButton.width + padding;
+      const minY = window.forfeitButton.y - padding;
+      const maxY = window.forfeitButton.y + window.forfeitButton.height + padding;
+      
+      console.log("🖱️ [CLICK] Expanded clickable area:", { minX, maxX, minY, maxY });
+      
+      // Check if click is within the expanded forfeit button area
+      if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
+        console.log('🏆 [CLICK] Forfeit button clicked on canvas - calling claimVictoryManually');
+        event.preventDefault();
+        event.stopPropagation();
+        claimVictoryManually();
+      } else {
+        console.log('🖱️ [CLICK] Click was outside expanded button area');
+        console.log('🖱️ [CLICK] Click needed to be between X:', minX, '-', maxX, 'and Y:', minY, '-', maxY);
+      }
+    } else {
+      console.log('🖱️ [CLICK] Forfeit not active or button not available');
+      console.log('🖱️ [CLICK] forfeitState:', window.forfeitState);
+      console.log('🖱️ [CLICK] forfeitButton:', window.forfeitButton);
+    }
+  });
+  
+  // Add mousemove handler for hover effects
+  canvas.addEventListener('mousemove', function(event) {
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    
+    // Store mouse coordinates for hover effects
+    window.lastMouseX = x;
+    window.lastMouseY = y;
+    
+    if (window.forfeitState && window.forfeitState.canClaim && window.forfeitButton) {
+      // Use expanded hover area to match clickable area
+      const padding = 20;
+      const minX = window.forfeitButton.x - padding;
+      const maxX = window.forfeitButton.x + window.forfeitButton.width + padding;
+      const minY = window.forfeitButton.y - padding;
+      const maxY = window.forfeitButton.y + window.forfeitButton.height + padding;
+      
+      // Check if mouse is over the expanded button area
+      if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
+        canvas.style.cursor = 'pointer';
+      } else {
+        canvas.style.cursor = 'default';
+      }
+    } else {
+      canvas.style.cursor = 'default';
+    }
+  });
   
   // Check MetaMask availability immediately
   checkMetaMaskOnLoad();
@@ -2832,7 +3497,10 @@ window.onload = async function () {
         document.getElementById("playButton").style.display = "block";
       }
 
-      document.getElementById("leaveMatchBtn").style.display = "none";
+      const leaveMatchBtn = document.getElementById("leaveMatchBtn");
+      if (leaveMatchBtn) {
+        leaveMatchBtn.style.display = "none";
+      }
 
       connectToSocketServer(window.currentUsername);
     } else {
@@ -2842,13 +3510,19 @@ window.onload = async function () {
       document.getElementById("createAccountSection").style.display = "none";
       document.getElementById("peerControls").style.display = "none";
 
-      document.getElementById("leaveMatchBtn").style.display = "none";
+      const leaveMatchBtn2 = document.getElementById("leaveMatchBtn");
+      if (leaveMatchBtn2) {
+        leaveMatchBtn2.style.display = "none";
+      }
 
       document.getElementById("playButton").style.display = "block";
     }
   });
 
-  document.getElementById("resetGameBtn").style.display = "none";
+  const resetGameBtn = document.getElementById("resetGameBtn");
+  if (resetGameBtn) {
+    resetGameBtn.style.display = "none";
+  }
 };
 
 window.addEventListener("beforeunload", () => {
