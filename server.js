@@ -1290,6 +1290,10 @@ app.get("/solo-game", (req, res) => {
 // Serve static files from both root and new directories
 app.use(express.static(__dirname));
 app.use('/new', express.static(path.join(__dirname, 'new')));
+// Redirect /new/ to /new/main.html
+app.get('/new/', (req, res) => {
+  res.redirect('/new/main.html');
+});
 
 const userSockets = {};
 
