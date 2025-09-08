@@ -2817,25 +2817,18 @@ async function fetchRoomInfo() {
 }
 
 // Fonction pour rejoindre manuellement une room avec Room ID
-// Function to find a room you can actually join - scan MUCH wider range
+// Function to find a room you can actually join - simple 1-50 scan
 async function findJoinableRoom() {
   try {
-    console.log("🔍 COMPREHENSIVE SCAN: Looking for ANY room you can join...");
+    console.log("🔍 SIMPLE SCAN: Looking for ANY room you can join...");
     const currentAccount = (await web3.eth.getAccounts())[0].toLowerCase();
     
-    // Get the current room counter from the contract
-    const roomCounter = await cashPongContract.methods.roomCounter().call();
-    console.log(`📊 Blockchain room counter: ${roomCounter}`);
-    
-    // SCAN MUCH WIDER - go beyond the counter to catch newly created rooms
-    const maxScan = Math.max(parseInt(roomCounter) + 20, 50); // Scan up to room 50 or counter+20
-    
-    console.log(`🔍 WIDE SCAN: Checking rooms 1 to ${maxScan} for your participation...`);
+    console.log(`� SCANNING: Checking rooms 1 to 50 for your participation...`);
     
     const foundRooms = [];
     
-    // Check ALL rooms in range
-    for (let i = maxScan; i >= 1; i--) {
+    // Simple approach: check rooms 1 to 50
+    for (let i = 50; i >= 1; i--) {
       try {
         const room = await cashPongContract.methods.getRoom(i).call();
         if (room.playerA && room.playerA !== "0x0000000000000000000000000000000000000000") {
