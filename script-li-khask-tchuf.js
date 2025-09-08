@@ -1128,21 +1128,9 @@ function connectToSocketServer(username) {
     window.opponentUsername = null;
     window.hasPlacedBet = false;
 
-    // Always send MetaMask address if available
+    // Always send MetaMask address if available (only if already connected)
     let ethAddressToSend = connectedWallet || "";
-    if (!ethAddressToSend && window.ethereum) {
-      // Try to get again if not set
-      window.ethereum.request({ method: "eth_accounts" }).then(accounts => {
-        ethAddressToSend = accounts[0] || "";
-        console.log(`[FRONTEND REGISTER] username: ${username}, ethAddress: ${ethAddressToSend}, role: ${window.playerRole || "player"}`);
-        socket.emit("register", {
-          username: username,
-          ethAddress: ethAddressToSend,
-          role: window.playerRole || "player"
-        });
-      });
-      return;
-    }
+    // Note: Removed automatic eth_accounts request to prevent RPC errors
 
     console.log(`[FRONTEND REGISTER] username: ${username}, ethAddress: ${ethAddressToSend}, role: ${window.playerRole || "player"}`);
     socket.emit("register", {

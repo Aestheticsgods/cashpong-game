@@ -439,7 +439,17 @@
             }
           })
           .catch(err => {
-            console.log('Error checking accounts:', err);
+            // Handle user rejection and other errors silently
+            if (err.code === 4001) {
+              // User rejected the request - this is normal behavior
+              console.log('User rejected MetaMask connection request');
+              walletStatus.innerHTML = lang.walletDetectedNotConnected;
+              walletStatus.style.color = '#60f0ff';
+            } else {
+              console.log('Error checking MetaMask accounts:', err);
+              walletStatus.innerHTML = lang.walletDetectedNotConnected;
+              walletStatus.style.color = '#60f0ff';
+            }
           });
       } else {
         walletStatus.innerHTML = lang.walletNotFound;

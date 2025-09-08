@@ -68,15 +68,9 @@ function login() {
             document.getElementById('peerControls').style.display = 'block';
             document.getElementById('joinRoomControls').style.display = 'block';
             
-            alert('🎉 Connexion réussie ! Connectez maintenant MetaMask.');
+            alert('🎉 Connexion réussie ! Connectez maintenant MetaMask manuellement.');
             
-            // Automatically try to connect MetaMask if available
-            setTimeout(() => {
-                if (typeof window.ethereum !== 'undefined') {
-                    console.log('🦊 Tentative de connexion automatique à MetaMask...');
-                    testButtonClick();
-                }
-            }, 1000);
+            // Note: Removed automatic MetaMask connection to prevent RPC errors
         })
         .catch((error) => {
             console.error('❌ Erreur de connexion:', error);
@@ -238,21 +232,9 @@ function connectToSocketServer(username) {
         window.opponentUsername = null;
         window.hasPlacedBet = false;
 
-        // Always send MetaMask address if available
+        // Always send MetaMask address if available (only if already connected)
         let ethAddressToSend = window.connectedWallet || "";
-        if (!ethAddressToSend && window.ethereum) {
-            // Try to get again if not set
-            window.ethereum.request({ method: "eth_accounts" }).then(accounts => {
-                ethAddressToSend = accounts[0] || "";
-                console.log(`[FRONTEND REGISTER] username: ${username}, ethAddress: ${ethAddressToSend}, role: ${window.playerRole || "player"}`);
-                socket.emit("register", {
-                    username: username,
-                    ethAddress: ethAddressToSend,
-                    role: window.playerRole || "player"
-                });
-            });
-            return;
-        }
+        // Note: Removed automatic eth_accounts request to prevent RPC errors
 
         console.log(`[FRONTEND REGISTER] username: ${username}, ethAddress: ${ethAddressToSend}, role: ${window.playerRole || "player"}`);
         socket.emit("register", {
