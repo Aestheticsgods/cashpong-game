@@ -635,6 +635,40 @@ cashPongContract.events.RoomCreated()
   })
   .on("error", console.error);
 
+// Listen for PlayerJoined events to automatically add playerB to Socket.IO room
+cashPongContract.events.PlayerJoined()
+  .on("data", (event) => {
+    console.log("🎯 Nouvel événement PlayerJoined détecté :", event.returnValues);
+    const { roomId, player } = event.returnValues;
+    
+    // Get the room from our game server
+    const room = gameServer.gameRooms.get(roomId);
+    if (!room) {
+      console.warn(`❌ Room ${roomId} not found for PlayerJoined event`);
+      return;
+    }
+    
+    const playerAddress = player.toLowerCase();
+    console.log(`✅ Joueur ${playerAddress} a rejoint la room ${roomId} via blockchain`);
+    
+    // Add the player to the room (this will handle Socket.IO room joining)
+    const success = gameServer.addPlayerToRoom(roomId, playerAddress);
+    if (success) {
+      console.log(`✅ [BLOCKCHAIN] Player ${playerAddress} successfully added to room ${roomId}`);
+      
+      // Check if both players are now in the room and start the match
+      if (room.playersJoined === 2) {
+        console.log(`🏆🏆🏆 [ROOM ${roomId}] BOTH PLAYERS JOINED! Starting match automatically...`);
+        setTimeout(() => {
+          gameServer.startMatch(roomId);
+        }, 1000); // Small delay to ensure all connections are ready
+      }
+    } else {
+      console.warn(`❌ Failed to add player ${playerAddress} to room ${roomId}`);
+    }
+  })
+  .on("error", console.error);
+
 // Configuration des connexions Socket.IO avec le nouveau système
 io.on("connection", (socket) => {
   console.log(`🟢 Nouvelle connexion : ${socket.id}`);
