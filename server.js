@@ -1258,14 +1258,27 @@ cashPongContract.events.PlayerJoined()
         let playerASockets = [];
         let playerBSockets = [];
         
+        console.log(`🔍 [DEBUG] Searching for players in users object:`);
+        console.log(`🔍 [DEBUG] Looking for PlayerA: ${room.playerA}`);
+        console.log(`🔍 [DEBUG] Looking for PlayerB: ${room.playerB}`);
+        console.log(`🔍 [DEBUG] Available users:`, Object.keys(users));
+        
         // Use the existing users object to find sockets
-        Object.values(users).forEach(user => {
+        Object.values(users).forEach((user, index) => {
+          console.log(`🔍 [DEBUG] User ${index}:`, {
+            username: user.username,
+            ethAddress: user.ethAddress,
+            socketId: user.socketId
+          });
+          
           if (user && user.ethAddress) {
             if (user.ethAddress.toLowerCase() === room.playerA) {
               playerASockets.push(user);
+              console.log(`✅ [DEBUG] Found PlayerA match: ${user.username} (${user.ethAddress})`);
             }
             if (user.ethAddress.toLowerCase() === room.playerB) {
               playerBSockets.push(user);
+              console.log(`✅ [DEBUG] Found PlayerB match: ${user.username} (${user.ethAddress})`);
             }
           }
         });
@@ -1785,6 +1798,38 @@ socket.on("sendChatMessage", ({ username, message }) => {
 
 // === SERVER-SIDE GAME HANDLERS ===
 
+// Manual join room for game participants
+socket.on("joinGameRoom", (data) => {
+  try {
+    const { roomId, playerAddress } = data;
+    console.log(`🎯 [MANUAL JOIN] Player ${playerAddress} manually joining room ${roomId}`);
+    
+    // Validate the room exists
+    const room = activeRooms[roomId];
+    if (!room) {
+      console.warn(`❌ Room ${roomId} not found for manual join`);
+      return;
+    }
+    
+    // Check if player belongs to this room
+    const normalizedAddress = playerAddress.toLowerCase();
+    if (normalizedAddress !== room.playerA && normalizedAddress !== room.playerB) {
+      console.warn(`❌ Player ${playerAddress} not authorized for room ${roomId}`);
+      return;
+    }
+    
+    // Join the socket to the room
+    socket.join(roomId);
+    console.log(`✅ [MANUAL JOIN] Player ${playerAddress} joined Socket.IO room ${roomId}`);
+    
+    // Confirm join
+    socket.emit("joinedGameRoom", { roomId, playerAddress });
+    
+  } catch (error) {
+    console.error(`❌ Error in manual room join:`, error);
+  }
+});
+
 // Start server-authoritative game
 socket.on("startServerGame", (data) => {
   try {
@@ -1822,15 +1867,27 @@ socket.on("startServerGame", (data) => {
     // Allow game start if both players are in the room (more flexible authorization)
     console.log(`✅ Game start authorized - both players have joined room ${roomId}`);
     
+    // 🔥 ENSURE REQUESTING SOCKET JOINS THE ROOM FIRST
+    socket.join(roomId);
+    console.log(`✅ [GAME START] Requesting socket ${socket.id} joined room ${roomId}`);
+    
     // Create game instance with server-side physics
     const gameInstance = gameServer.createGameInstance(roomId, room.playerA, room.playerB);
     
-    // Join players to Socket.IO room for broadcasting
-    const playerASocket = users[room.playerA];
-    const playerBSocket = users[room.playerB];
-    
-    if (playerASocket) playerASocket.join(roomId);
-    if (playerBSocket) playerBSocket.join(roomId);
+    // 🔥 FIND AND JOIN BOTH PLAYERS TO SOCKET.IO ROOM FOR BROADCASTING
+    console.log(`🔍 [GAME START] Finding sockets for both players...`);
+    Object.values(users).forEach(user => {
+      if (user && user.socketId && user.ethAddress) {
+        const userAddress = user.ethAddress.toLowerCase();
+        if (userAddress === room.playerA || userAddress === room.playerB) {
+          const userSocket = io.sockets.sockets.get(user.socketId);
+          if (userSocket && userSocket.id !== socket.id) { // Don't double-join requesting socket
+            userSocket.join(roomId);
+            console.log(`✅ [GAME START] User ${user.username} (${userAddress}) joined room ${roomId}`);
+          }
+        }
+      }
+    });
     
     // Start the server-side game loop
     gameServer.startServerGame(roomId);
