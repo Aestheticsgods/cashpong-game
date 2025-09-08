@@ -1269,7 +1269,7 @@ let roomCounter = 1;
 // Define routes BEFORE static middleware to override default behavior
 // Landing page route - serve the new landing page
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "new", "index.html"));
+  res.sendFile(path.join(__dirname, "new", "main.html"));
 });
 
 // Game route - serve the actual game
