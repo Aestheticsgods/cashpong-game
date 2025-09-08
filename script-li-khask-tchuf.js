@@ -3750,6 +3750,49 @@ async function forcePolygonMainnet() {
   }
 }
 
+// Ensure we're on Polygon Network (used by new sync system)
+async function ensurePolygonNetwork() {
+  if (!web3) {
+    throw new Error("Web3 not initialized. Connect MetaMask first.");
+  }
+
+  if (!connectedWallet) {
+    throw new Error("Connect your MetaMask wallet first.");
+  }
+
+  if (!cashPongContract) {
+    throw new Error("Contract not initialized. Connect MetaMask first.");
+  }
+
+  try {
+    const chainId = await web3.eth.getChainId();
+    // Handle both hex and decimal formats for POLYGON_CHAIN_ID
+    let expectedChainId;
+    const polygonChainId = window.POLYGON_CHAIN_ID || "137";
+    if (polygonChainId.startsWith("0x")) {
+      expectedChainId = parseInt(polygonChainId, 16);
+    } else {
+      expectedChainId = parseInt(polygonChainId, 10);
+    }
+    
+    // Convert both to numbers to ensure proper comparison
+    const currentChainId = Number(chainId);
+    const expectedChainIdNum = Number(expectedChainId);
+    
+    console.log(`🔍 Network check: ${currentChainId} vs ${expectedChainIdNum}`);
+    
+    if (currentChainId !== expectedChainIdNum) {
+      throw new Error(`Wrong network. Switch to Polygon Mainnet (Chain ID: ${expectedChainIdNum}). Current: ${currentChainId}`);
+    }
+    
+    console.log("✅ Polygon Mainnet confirmed");
+    return true;
+  } catch (networkError) {
+    console.error("❌ Network verification error:", networkError);
+    throw networkError;
+  }
+}
+
 // Test function to verify contract connectivity
 async function testContractConnection() {
   try {
