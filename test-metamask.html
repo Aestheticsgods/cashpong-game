@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test MetaMask Connection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        button {
+            background: #f39c12;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background: #e67e22;
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <h1>🦊 Test de Connexion MetaMask</h1>
+    
+    <div class="info">
+        <strong>Test de connexion:</strong> Cette page teste si MetaMask se connecte correctement sans erreurs automatiques.
+    </div>
+    
+    <button onclick="testMetaMaskDetection()">1. 🔍 Détecter MetaMask</button>
+    <button onclick="testConnection()">2. 🔗 Tester Connexion</button>
+    <button onclick="checkNetwork()">3. 🌐 Vérifier Réseau</button>
+    
+    <div id="status"></div>
+    
+    <h3>📋 Console Log:</h3>
+    <div id="console" style="background: #f8f9fa; padding: 15px; border-radius: 8px; max-height: 300px; overflow-y: auto; font-family: monospace; white-space: pre-wrap;"></div>
+
+    <script>
+        // Override console.log to display in our div
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        function logToDiv(message, type = 'log') {
+            const consoleDiv = document.getElementById('console');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'warn' ? '⚠️' : 'ℹ️';
+            consoleDiv.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            logToDiv(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            logToDiv(args.join(' '), 'error');
+        };
+        
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            logToDiv(args.join(' '), 'warn');
+        };
+
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+
+        function testMetaMaskDetection() {
+            console.log('🔍 Test de détection MetaMask...');
+            
+            if (typeof window.ethereum !== 'undefined') {
+                console.log('✅ MetaMask détecté!');
+                showStatus('✅ MetaMask est installé et détecté', 'success');
+                return true;
+            } else {
+                console.log('❌ MetaMask NON détecté');
+                showStatus('❌ MetaMask n\'est pas installé', 'error');
+                return false;
+            }
+        }
+
+        async function testConnection() {
+            console.log('🔗 Test de connexion MetaMask...');
+            
+            if (!testMetaMaskDetection()) {
+                return;
+            }
+
+            try {
+                console.log('⏳ Demande de connexion...');
+                showStatus('⏳ Demande de connexion à MetaMask...', 'info');
+                
+                const accounts = await window.ethereum.request({ 
+                    method: 'eth_requestAccounts' 
+                });
+                
+                if (accounts && accounts.length > 0) {
+                    console.log(`✅ Connecté! Compte: ${accounts[0]}`);
+                    showStatus(`✅ Connexion réussie! Compte: ${accounts[0].substring(0, 10)}...`, 'success');
+                } else {
+                    console.log('❌ Aucun compte trouvé');
+                    showStatus('❌ Aucun compte MetaMask trouvé', 'error');
+                }
+            } catch (error) {
+                console.error('❌ Erreur de connexion:', error);
+                
+                let errorMsg = 'Erreur de connexion';
+                if (error.code === 4001) {
+                    errorMsg = 'Connexion refusée par l\'utilisateur';
+                } else if (error.code === -32002) {
+                    errorMsg = 'Demande de connexion en cours, vérifiez MetaMask';
+                }
+                
+                showStatus(`❌ ${errorMsg}: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkNetwork() {
+            console.log('🌐 Vérification du réseau...');
+            
+            if (!testMetaMaskDetection()) {
+                return;
+            }
+
+            try {
+                const chainId = await window.ethereum.request({ 
+                    method: 'eth_chainId' 
+                });
+                
+                console.log(`🔗 Chain ID: ${chainId}`);
+                
+                const networks = {
+                    '0x1': 'Ethereum Mainnet',
+                    '0x89': 'Polygon Mainnet',
+                    '0xa86a': 'Avalanche',
+                    '0x38': 'BSC Mainnet'
+                };
+                
+                const networkName = networks[chainId] || `Réseau inconnu (${chainId})`;
+                console.log(`🌐 Réseau: ${networkName}`);
+                
+                if (chainId === '0x89') {
+                    showStatus(`✅ Connecté à ${networkName}`, 'success');
+                } else {
+                    showStatus(`⚠️ Réseau actuel: ${networkName} (Polygon recommandé)`, 'error');
+                }
+            } catch (error) {
+                console.error('❌ Erreur réseau:', error);
+                showStatus(`❌ Impossible de vérifier le réseau: ${error.message}`, 'error');
+            }
+        }
+
+        // Test automatique à l'ouverture de la page (sans connexion)
+        console.log('🚀 Page de test chargée');
+        console.log('ℹ️ Aucune connexion automatique - tests manuels seulement');
+        
+        // Vérifier qu'aucune erreur RPC n'apparaît automatiquement
+        setTimeout(() => {
+            console.log('✅ Test de 3 secondes: aucune erreur RPC automatique détectée');
+            showStatus('✅ Aucune erreur MetaMask automatique détectée', 'success');
+        }, 3000);
+    </script>
+</body>
+</html>

@@ -373,9 +373,8 @@ async function connectWallet() {
         }
       } else {
         // Fallback to local implementation
-        console.log("⏳ Forçage vers Polygon Mainnet...");
-        await forcePolygonMainnet();
-
+        console.log("🔐 Connexion à MetaMask...");
+        
         console.log("⏳ Demande d'accès aux comptes...");
         const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
         
@@ -385,6 +384,20 @@ async function connectWallet() {
         
         connectedWallet = accounts[0];
         console.log(`✅ Compte connecté: ${connectedWallet}`);
+
+        // Optional network switch after connection
+        try {
+          const chainId = await window.ethereum.request({ method: "eth_chainId" });
+          if (chainId !== "0x89") {
+            const switchNetwork = confirm("🌐 Voulez-vous changer vers Polygon Mainnet?\n\n✅ Oui - Changer\n❌ Non - Rester");
+            if (switchNetwork) {
+              console.log("⏳ Forçage vers Polygon Mainnet...");
+              await forcePolygonMainnet();
+            }
+          }
+        } catch (networkError) {
+          console.warn("⚠️ Erreur réseau:", networkError.message);
+        }
 
         console.log("⏳ Initialisation Web3...");
         web3 = new Web3(window.ethereum);

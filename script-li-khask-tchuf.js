@@ -2094,12 +2094,38 @@ async function connectWalletAndInitialize() {
   }
 
   try {
-    // Force Polygon Mainnet before connecting
-    await forcePolygonMainnet();
-
+    // FIRST: Connect to MetaMask without forcing network change
+    console.log("🔐 Connexion à MetaMask...");
     web3 = new Web3(window.ethereum);
     const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
     connectedWallet = accounts[0];
+    
+    console.log("✅ MetaMask connecté!");
+    console.log("👤 Compte:", connectedWallet);
+
+    // SECOND: Check network and offer to switch (optional)
+    try {
+      const chainId = await window.ethereum.request({ method: "eth_chainId" });
+      console.log("🌐 Réseau actuel:", chainId);
+      
+      if (chainId !== "0x89") {
+        const switchNetwork = confirm("🌐 Vous n'êtes pas sur Polygon Mainnet.\n\nVoulez-vous changer de réseau automatiquement?\n\n✅ Oui - Changer vers Polygon\n❌ Non - Rester sur le réseau actuel");
+        
+        if (switchNetwork) {
+          console.log("🔄 Changement vers Polygon Mainnet...");
+          await forcePolygonMainnet();
+          console.log("✅ Réseau changé vers Polygon");
+        } else {
+          console.log("ℹ️ Réseau non changé - continuez avec le réseau actuel");
+        }
+      } else {
+        console.log("✅ Déjà sur Polygon Mainnet");
+      }
+    } catch (networkError) {
+      console.warn("⚠️ Impossible de vérifier/changer le réseau:", networkError.message);
+      console.log("ℹ️ Continuez avec le réseau actuel");
+    }
+
     // Use shortened wallet address as username for display
     window.currentUsername = connectedWallet.substring(0, 8) + "...";
 
