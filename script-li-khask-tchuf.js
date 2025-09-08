@@ -3044,7 +3044,25 @@ async function joinRoomManually() {
       console.log(`📊 Current room counter: ${roomCounter} (highest room created so far)`);
       
       if (parseInt(roomIdInput) > parseInt(roomCounter)) {
-        alert(`❌ Room ${roomIdInput} doesn't exist yet. The highest room number created is ${roomCounter}.\n\nPlease use a room number between 1 and ${roomCounter}.`);
+        // Check if user has a previous room in localStorage
+        const storedRoomId = localStorage.getItem("currentRoomId");
+        let suggestion = "";
+        if (storedRoomId && storedRoomId !== roomIdInput) {
+          suggestion = `\n\n💡 Suggestion: You have Room ${storedRoomId} stored from a previous session. Try that room instead?`;
+        }
+        
+        alert(`❌ Room ${roomIdInput} doesn't exist yet. The highest room number created is ${roomCounter}.\n\nPlease use a room number between 1 and ${roomCounter}.${suggestion}`);
+        
+        // Auto-suggest the stored room if available
+        if (storedRoomId && storedRoomId !== roomIdInput) {
+          const tryStored = confirm(`Would you like to try joining your previous room (${storedRoomId}) instead?`);
+          if (tryStored) {
+            document.getElementById("roomIdToJoin").value = storedRoomId;
+            console.log(`🔄 Auto-filled Room ${storedRoomId} from localStorage`);
+            return;
+          }
+        }
+        
         return;
       }
     } catch (counterError) {
@@ -3879,3 +3897,66 @@ async function scanAvailableRooms() {
 // Make functions globally available
 window.testContractConnection = testContractConnection;
 window.scanAvailableRooms = scanAvailableRooms;
+
+// Quick function to check and rejoin stored room
+window.checkStoredRoom = async function() {
+  const storedRoomId = localStorage.getItem("currentRoomId");
+  const storedRole = localStorage.getItem("role");
+  
+  if (!storedRoomId) {
+    alert("❌ No stored room found. You need to join a room first.");
+    return;
+  }
+  
+  console.log(`🔍 Checking stored room: ${storedRoomId} (role: ${storedRole})`);
+  
+  try {
+    const room = await cashPongContract.methods.getRoom(storedRoomId).call();
+    
+    if (room.playerA === "0x0000000000000000000000000000000000000000") {
+      alert(`❌ Stored Room ${storedRoomId} no longer exists or is invalid.`);
+      // Clear invalid stored room
+      localStorage.removeItem("currentRoomId");
+      localStorage.removeItem("role");
+      return;
+    }
+    
+    const isPlayerA = room.playerA.toLowerCase() === connectedWallet.toLowerCase();
+    const isPlayerB = room.playerB.toLowerCase() === connectedWallet.toLowerCase();
+    
+    if (!isPlayerA && !isPlayerB) {
+      alert(`❌ You're no longer part of stored Room ${storedRoomId}.`);
+      localStorage.removeItem("currentRoomId");
+      localStorage.removeItem("role");
+      return;
+    }
+    
+    const roomInfo = {
+      roomId: storedRoomId,
+      role: isPlayerA ? 'Creator (PlayerA)' : 'Invited (PlayerB)',
+      playerAJoined: room.playerAJoined,
+      playerBJoined: room.playerBJoined,
+      isFinished: room.isFinished,
+      betAmount: web3.utils.fromWei(room.betAmount, 'ether')
+    };
+    
+    console.log("📋 Stored room info:", roomInfo);
+    
+    const status = roomInfo.isFinished ? 'FINISHED' : 
+                  (roomInfo.role.includes('PlayerB') && !roomInfo.playerBJoined) ? 'CAN JOIN' :
+                  (roomInfo.role.includes('PlayerA') && !roomInfo.playerBJoined) ? 'WAITING FOR OPPONENT' :
+                  'ACTIVE';
+    
+    const message = `🎮 Your stored room:\n\nRoom ${storedRoomId}\nRole: ${roomInfo.role}\nStatus: ${status}\nBet: ${roomInfo.betAmount} ETH\n\nWould you like to rejoin this room?`;
+    
+    const rejoin = confirm(message);
+    if (rejoin) {
+      document.getElementById("roomIdToJoin").value = storedRoomId;
+      alert(`✅ Room ${storedRoomId} filled in the input field. Click 'Join Room' to continue.`);
+    }
+    
+  } catch (error) {
+    console.error("❌ Error checking stored room:", error);
+    alert("❌ Error checking stored room: " + error.message);
+  }
+};
