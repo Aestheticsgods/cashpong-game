@@ -14,10 +14,10 @@
       color: #e6f7ff;
       font-family: 'Segoe UI', Arial, sans-serif;
       margin: 0;
-      padding: 20px 0;
+      padding: 0;
       min-height: 100vh;
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       justify-content: center;
       overflow: auto;
       position: relative;
@@ -47,8 +47,9 @@
       z-index: 2;
       text-align: center;
       max-width: 800px;
-      padding: 40px 20px;
-      margin-top: 20px;
+      width: 90%;
+      padding: 30px 20px;
+      margin: 20px;
       background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
       border-radius: 24px;
       border: 2px solid var(--glass-border);
@@ -56,6 +57,8 @@
         0 25px 80px rgba(2,6,23,0.8),
         inset 0 1px 0 rgba(255,255,255,0.1);
       backdrop-filter: blur(10px);
+      max-height: 90vh;
+      overflow-y: auto;
     }
 
     .logo {
@@ -88,12 +91,12 @@
     .features {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-      margin-bottom: 40px;
+      gap: 15px;
+      margin-bottom: 30px;
     }
 
     .feature {
-      padding: 20px;
+      padding: 15px;
       background: rgba(255,255,255,0.02);
       border-radius: 12px;
       border: 1px solid rgba(96,240,255,0.2);
@@ -239,8 +242,8 @@
   
   <div class="game-container">
     <!-- Logo at the top of the game container -->
-    <div style="text-align: center; margin-bottom: 30px;">
-      <img src="/hadi.png" alt="Cashpong Logo" style="height: 120px; width: auto; display: block; margin: 0 auto;">
+    <div style="text-align: center; margin-bottom: 20px;">
+      <img src="/hadi.png" alt="Cashpong Logo" style="height: 100px; width: auto; display: block; margin: 0 auto;">
     </div>
     
     <div class="tagline game-subtitle">LE JEU DE PONG ULTIME</div>
