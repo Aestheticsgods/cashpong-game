@@ -1274,7 +1274,7 @@ app.get("/", (req, res) => {
 
 // Game route - serve the actual game
 app.get("/game", (req, res) => {
-  res.sendFile(path.join(__dirname, "new", "main.html"));
+  res.sendFile(path.join(__dirname, "index.html"));
 });
 
 // Rules route - serve the rules page
